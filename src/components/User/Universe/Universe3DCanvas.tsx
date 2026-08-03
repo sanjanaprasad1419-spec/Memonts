@@ -26,6 +26,8 @@ import {
   Calendar,
 } from 'lucide-react';
 
+import { RealisticMoon } from './InteractiveMoon/RealisticMoon';
+
 export const Universe3DCanvas: React.FC = () => {
   const [selectedChapter, setSelectedChapter] = useState<WorldChapter3D | null>(null);
   const [animatingChapter, setAnimatingChapter] = useState<WorldChapter3D | null>(null);
@@ -153,6 +155,9 @@ export const Universe3DCanvas: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen bg-black text-slate-100 overflow-hidden flex flex-col justify-between select-none">
+      {/* Realistic Interactive Full Moon (Top-Left) */}
+      <RealisticMoon />
+
       {/* 3D Glowing Star Cursor */}
       <StarCursor />
 
