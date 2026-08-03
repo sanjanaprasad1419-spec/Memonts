@@ -1,7 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { UserNavbar } from './UserNavbar';
 import { GlobalMusicPlayer } from './GlobalMusicPlayer';
-import { RealisticMoon } from './InteractiveMoon/RealisticMoon';
 
 interface UserLayoutProps {
   children: ReactNode;
@@ -23,9 +22,6 @@ export const UserLayout: React.FC<UserLayoutProps> = ({
       <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[140px] pointer-events-none"></div>
 
       <UserNavbar currentSectionTitle={currentSectionTitle} onNavigateHome={onNavigateHome} />
-
-      {/* Interactive Draggable Realistic Moon */}
-      <RealisticMoon />
 
       <main className="flex-1 flex flex-col relative z-10">
         {children}

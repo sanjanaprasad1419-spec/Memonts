@@ -155,9 +155,6 @@ export const Universe3DCanvas: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen bg-black text-slate-100 overflow-hidden flex flex-col justify-between select-none">
-      {/* Realistic Interactive Full Moon (Top-Left) */}
-      <RealisticMoon />
-
       {/* 3D Glowing Star Cursor */}
       <StarCursor />
 
@@ -196,6 +193,8 @@ export const Universe3DCanvas: React.FC = () => {
             exit={{ opacity: 0, transition: { duration: 0.8 } }}
             className="absolute inset-0 z-10 w-full h-full"
           >
+            {/* Realistic Interactive Full Moon (Exclusively on 3D Universe Page) */}
+            <RealisticMoon />
             <Canvas
               dpr={[1, 2]}
               camera={{ position: [0, 0, 9.2], fov: 50 }}
