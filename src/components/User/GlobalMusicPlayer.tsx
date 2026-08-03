@@ -182,11 +182,12 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
     <motion.div
       drag
       dragMomentum={false}
-      whileDrag={{ scale: 1.05, cursor: 'grabbing' }}
-      className="fixed bottom-5 left-5 z-40 animate-fadeIn select-none cursor-grab active:cursor-grabbing"
+      dragElastic={0.1}
+      whileDrag={{ scale: 1.04, cursor: 'grabbing' }}
+      className="fixed bottom-5 left-5 z-50 animate-fadeIn select-none cursor-grab active:cursor-grabbing pointer-events-auto"
     >
-      <div className="flex items-center gap-3 backdrop-blur-2xl bg-slate-950/90 border border-rose-500/40 rounded-2xl p-2.5 sm:px-4 sm:py-3 shadow-2xl shadow-rose-950/40">
-        {/* Animated Equalizer Soundwaves */}
+      <div className="flex items-center gap-3 backdrop-blur-2xl bg-slate-950/95 border border-rose-500/50 rounded-2xl p-2.5 sm:px-4 sm:py-3 shadow-[0_10px_35px_rgba(0,0,0,0.85)] shadow-rose-950/50">
+        {/* Animated Equalizer Soundwaves / Drag Indicator */}
         <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 p-0.5 shadow-md flex items-center justify-center shrink-0">
           <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
             {isPlaying ? (
@@ -202,7 +203,7 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
         </div>
 
         {/* Track Title & Artist */}
-        <div className="hidden sm:flex flex-col min-w-0 max-w-[180px]">
+        <div className="hidden sm:flex flex-col min-w-0 max-w-[180px] pointer-events-none">
           <span className="text-xs font-bold text-slate-100 truncate">
             {activeSong.title}
           </span>
@@ -213,7 +214,10 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-1 sm:gap-1.5 pl-1 border-l border-slate-800">
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          className="flex items-center gap-1 sm:gap-1.5 pl-1 border-l border-slate-800 pointer-events-auto"
+        >
           {/* Play/Pause */}
           <button
             onClick={togglePlay}
