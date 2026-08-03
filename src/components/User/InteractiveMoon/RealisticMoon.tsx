@@ -9,7 +9,7 @@ export const RealisticMoon: React.FC = () => {
       drag
       dragMomentum={false}
       whileDrag={{ scale: 1.12, cursor: 'grabbing' }}
-      className="fixed top-6 left-6 z-50 flex items-center gap-4 pointer-events-auto select-none cursor-grab active:cursor-grabbing"
+      className="fixed top-20 left-6 z-50 flex items-center gap-4 pointer-events-auto select-none cursor-grab active:cursor-grabbing"
     >
       {/* Realistic Moon Container */}
       <div

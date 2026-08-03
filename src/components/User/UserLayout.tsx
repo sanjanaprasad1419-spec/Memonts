@@ -1,6 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { UserNavbar } from './UserNavbar';
 import { GlobalMusicPlayer } from './GlobalMusicPlayer';
+import { RealisticMoon } from './InteractiveMoon/RealisticMoon';
 
 interface UserLayoutProps {
   children: ReactNode;
@@ -23,11 +24,14 @@ export const UserLayout: React.FC<UserLayoutProps> = ({
 
       <UserNavbar currentSectionTitle={currentSectionTitle} onNavigateHome={onNavigateHome} />
 
+      {/* Interactive Draggable Realistic Moon */}
+      <RealisticMoon />
+
       <main className="flex-1 flex flex-col relative z-10">
         {children}
       </main>
 
-      {/* Global Background Music Player Across Universe (Hidden during Cinematic Intro) */}
+      {/* Global Background Music Player Across Universe */}
       <GlobalMusicPlayer isIntroPlaying={isIntroPlaying} />
     </div>
   );
