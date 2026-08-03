@@ -39,12 +39,12 @@ export const fetchGalleryPhotosFromSupabase = async (): Promise<GalleryPhoto[]> 
 
   if (!res.success || !res.data) {
     console.warn('[DEBUG Fetch Notice] Could not list storage objects, returning manifest gallery photos.');
-    return manifest.galleryPhotos;
+    return manifest.galleryPhotos.filter((p) => !p.imageUrl?.match(/\.(mp4|webm|ogg|mov|m4v|avi|mkv)(\?.*)?$/i));
   }
 
-  console.log(`[DEBUG Fetch Completed] Found ${res.data.length} storage object(s) in memories/gallery.`);
+  const imageFiles = res.data.filter((f) => !f.name.match(/\.(mp4|webm|ogg|mov|m4v|avi|mkv)$/i));
 
-  const photos: GalleryPhoto[] = res.data.map((file) => {
+  const photos: GalleryPhoto[] = imageFiles.map((file) => {
     const existing = manifestMap.get(file.path) || manifestMap.get(file.publicUrl);
     const dateStr = file.created_at
       ? new Date(file.created_at).toISOString().split('T')[0]

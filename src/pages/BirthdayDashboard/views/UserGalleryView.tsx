@@ -16,7 +16,9 @@ export const UserGalleryView: React.FC<UserGalleryViewProps> = ({ onBack }) => {
   useEffect(() => {
     // Subscribe to Firestore galleryPhotos collection in real time
     const unsubscribe = subscribeGalleryPhotos((items) => {
-      const valid = items.filter((p) => p && p.imageUrl && p.imageUrl.trim().length > 0);
+      const valid = items.filter(
+        (p) => p && p.imageUrl && p.imageUrl.trim().length > 0 && !p.imageUrl.match(/\.(mp4|webm|ogg|mov|m4v|avi|mkv)(\?.*)?$/i)
+      );
       setPhotos(valid);
     });
 
