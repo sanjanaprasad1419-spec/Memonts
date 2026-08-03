@@ -169,7 +169,7 @@ export const MusicTab: React.FC = () => {
     const matchesSearch =
       s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.eventName.toLowerCase().includes(searchQuery.toLowerCase());
+      (s.eventName || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesEvent = selectedEventFilter === 'all' || s.eventName === selectedEventFilter;
     const matchesFav = filterFavoritesOnly ? s.favorite : true;

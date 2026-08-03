@@ -20,6 +20,7 @@ import {
   deleteEvent,
   type BirthdayEvent,
 } from '../../../services/eventService';
+import { StorageService } from '../../../services/storage.service';
 
 export const EventsTab: React.FC = () => {
   const [events, setEvents] = useState<BirthdayEvent[]>([]);
@@ -88,22 +89,35 @@ export const EventsTab: React.FC = () => {
     setEditingEvent(null);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('error', 'Image size should be under 10MB');
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('error', 'Image size should be under 15MB');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      setCoverImage(dataUrl);
-      setImagePreview(dataUrl);
-    };
-    reader.readAsDataURL(file);
+    try {
+      showToast('success', 'Uploading cover image to Supabase Storage...');
+      const uploadRes = await StorageService.uploadFile({
+        folder: 'gallery',
+        file,
+      });
+
+      if (uploadRes.success && uploadRes.data?.publicUrl) {
+        const publicUrl = uploadRes.data.publicUrl;
+        console.log('[DEBUG EventsTab] Uploaded event cover image to Supabase Storage:', publicUrl);
+        setCoverImage(publicUrl);
+        setImagePreview(publicUrl);
+        showToast('success', 'Cover image uploaded to Supabase Storage!');
+      } else {
+        showToast('error', uploadRes.error || 'Failed to upload image to Supabase');
+      }
+    } catch (err: any) {
+      console.error('[DEBUG EventsTab Upload Error]', err);
+      showToast('error', 'Upload failed. Please try again.');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

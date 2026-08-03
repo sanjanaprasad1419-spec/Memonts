@@ -1,17 +1,10 @@
-import { storage } from './config';
-import {
-  ref,
-  uploadBytesResumable,
-  deleteObject,
-} from 'firebase/storage';
+import { StorageService } from '../services/storage.service';
+import type { StorageFolder } from '../types/supabase';
 
 export interface UploadProgressCallback {
   (progress: number): void;
 }
 
-/**
- * Validates image type and file size (Max 15MB)
- */
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
   if (!allowedTypes.includes(file.type)) {
@@ -25,56 +18,8 @@ export const validateImageFile = (file: File): { valid: boolean; error?: string 
 };
 
 /**
- * Converts File to lightweight Base64 DataURL instantly (Max 1200px, JPEG 0.82)
- */
-const compressAndConvertToDataUrl = (file: File): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const canvas = document.createElement('canvas');
-      const maxDim = 1200;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
-      } else {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      }
-    };
-
-    img.onerror = () => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(file);
-    };
-
-    img.src = url;
-  });
-};
-
-/**
- * Uploads an image with 100% instant resolution (Zero hanging, instant modal close, zero page refresh)
+ * Uploads an image directly to Supabase Storage ('memories' bucket)
+ * Returns ONLY the permanent public CDN URL from Supabase.
  */
 export const uploadImageToStorage = async (
   file: File,
@@ -86,35 +31,42 @@ export const uploadImageToStorage = async (
     throw new Error(validation.error || 'Invalid file');
   }
 
-  if (onProgress) onProgress(40);
+  if (onProgress) onProgress(30);
 
-  // 1. Instantly compress and generate DataURL (< 50ms)
-  const dataUrl = await compressAndConvertToDataUrl(file);
-  if (onProgress) onProgress(100);
+  const folder: StorageFolder = (folderPath.includes('welcome')
+    ? 'welcome-background'
+    : folderPath.includes('featured')
+    ? 'featured'
+    : 'gallery') as StorageFolder;
 
-  // 2. Asynchronously upload to Firebase Storage in background without blocking UI
-  try {
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-    const fullPath = `${folderPath.replace(/\/$/, '')}/${fileName}`;
-    const storageRef = ref(storage, fullPath);
-    uploadBytesResumable(storageRef, file);
-  } catch (error) {
-    console.info('Background Storage sync notice:', error);
+  const res = await StorageService.uploadFile({
+    folder,
+    file,
+  });
+
+  if (!res.success || !res.data) {
+    throw new Error(res.error || 'Upload to Supabase Storage failed');
   }
 
-  // Return instant image URL so modal closes immediately!
-  return dataUrl;
+  if (onProgress) onProgress(100);
+
+  console.log(`[DEBUG firebase/storage.ts] Uploaded file "${file.name}" to Supabase Storage. Public URL: "${res.data.publicUrl}"`);
+  return res.data.publicUrl;
 };
 
 /**
- * Deletes an image from Firebase Storage
+ * Deletes an image from Supabase Storage
  */
 export const deleteImageFromStorage = async (imageUrl: string): Promise<void> => {
   if (!imageUrl || imageUrl.startsWith('data:')) return;
 
   try {
-    const imageRef = ref(storage, imageUrl);
-    await deleteObject(imageRef);
+    if (imageUrl.includes('/object/public/memories/')) {
+      const path = imageUrl.split('/object/public/memories/')[1];
+      if (path) {
+        await StorageService.deleteFile(path);
+      }
+    }
   } catch (error) {
     console.warn('Delete image warning:', error);
   }

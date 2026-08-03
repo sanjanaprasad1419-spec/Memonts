@@ -1,143 +1,79 @@
-import {
-  addDocument,
-  updateDocument,
-  deleteDocument,
-  subscribeToCollection,
-  type BaseDoc,
-} from '../firebase/firestore';
-import { saveMediaToIndexedDB, getMediaFromIndexedDB } from '../utils/mediaStore';
+import { getSystemManifest, saveSystemManifest } from './supabaseSync.service';
 
-export interface BirthdayEvent extends BaseDoc {
+export interface BirthdayEvent {
+  id: string;
   name: string;
   description: string;
-  date: string; // e.g. "June 19, 2026"
+  date: string;
   status: 'Published' | 'Draft';
-  coverImage?: string; // DataURL or image URL
+  coverImage?: string;
+  createdAt?: string;
 }
 
-const COLLECTION_NAME = 'events';
-const STORAGE_KEY = `fb_${COLLECTION_NAME}`;
+const subscribers = new Set<(events: BirthdayEvent[]) => void>();
 
-// Default initial birthday event if no events exist yet
-const defaultEvent: BirthdayEvent = {
-  id: 'default-bday-1',
-  name: "Shubham's 30th Birthday",
-  description: 'A special milestone birthday celebration timeline filled with love, memories, and surprises.',
-  date: 'June 19, 2026',
-  status: 'Published',
-  coverImage: '',
-  createdAt: new Date().toISOString(),
+const notifySubscribers = (events: BirthdayEvent[]) => {
+  subscribers.forEach((cb) => {
+    try {
+      cb(events);
+    } catch (e) {
+      console.error('[DEBUG Events Refresh Error]', e);
+    }
+  });
 };
 
-/**
- * Fetch all events (from IndexedDB / LocalStorage cache)
- */
 export async function getEvents(): Promise<BirthdayEvent[]> {
-  try {
-    const cached = await getMediaFromIndexedDB<BirthdayEvent[]>(STORAGE_KEY);
-    if (cached && Array.isArray(cached) && cached.length > 0) {
-      return cached;
-    }
-
-    const lsStored = localStorage.getItem(STORAGE_KEY);
-    if (lsStored) {
-      const parsed = JSON.parse(lsStored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        saveMediaToIndexedDB(STORAGE_KEY, parsed);
-        return parsed;
-      }
-    }
-
-    // Default initial seed
-    saveMediaToIndexedDB(STORAGE_KEY, [defaultEvent]);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([defaultEvent]));
-    return [defaultEvent];
-  } catch (error) {
-    console.error('Error fetching events:', error);
-    return [defaultEvent];
-  }
+  const manifest = await getSystemManifest();
+  return manifest.events || [];
 }
 
-/**
- * Subscribe to realtime event changes
- */
 export function subscribeToEvents(callback: (events: BirthdayEvent[]) => void): () => void {
-  return subscribeToCollection<BirthdayEvent>(
-    COLLECTION_NAME,
-    (items) => {
-      if (!items || items.length === 0) {
-        callback([defaultEvent]);
-      } else {
-        callback(items);
-      }
-    },
-    'createdAt',
-    'desc'
-  );
+  subscribers.add(callback);
+
+  getEvents().then((items) => {
+    notifySubscribers(items);
+  });
+
+  return () => {
+    subscribers.delete(callback);
+  };
 }
 
-/**
- * Create a new event
- */
 export async function createEvent(
   eventData: Omit<BirthdayEvent, 'id' | 'createdAt'>
 ): Promise<BirthdayEvent> {
-  const currentEvents = await getEvents();
-
-  const id = await addDocument(COLLECTION_NAME, {
-    ...eventData,
-    createdAt: new Date().toISOString(),
-  });
-
+  const id = `event_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const newEvent: BirthdayEvent = {
     ...eventData,
     id,
     createdAt: new Date().toISOString(),
   };
 
-  const updatedList = [newEvent, ...currentEvents.filter((e) => e.id !== id)];
-  saveMediaToIndexedDB(STORAGE_KEY, updatedList);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+  const manifest = await getSystemManifest();
+  const updatedEvents = [newEvent, ...manifest.events.filter((e) => e.id !== id)];
+  await saveSystemManifest({ ...manifest, events: updatedEvents });
 
+  notifySubscribers(updatedEvents);
   return newEvent;
 }
 
-/**
- * Update an existing event
- */
 export async function updateEvent(
   eventId: string,
   updatedFields: Partial<Omit<BirthdayEvent, 'id'>>
 ): Promise<BirthdayEvent[]> {
-  const currentEvents = await getEvents();
-
-  await updateDocument(COLLECTION_NAME, eventId, updatedFields);
-
-  const updatedList = currentEvents.map((evt) =>
+  const manifest = await getSystemManifest();
+  const updatedEvents = manifest.events.map((evt) =>
     evt.id === eventId ? { ...evt, ...updatedFields } : evt
   );
-
-  saveMediaToIndexedDB(STORAGE_KEY, updatedList);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
-
-  return updatedList;
+  await saveSystemManifest({ ...manifest, events: updatedEvents });
+  notifySubscribers(updatedEvents);
+  return updatedEvents;
 }
 
-/**
- * Delete an event permanently
- */
 export async function deleteEvent(eventId: string): Promise<BirthdayEvent[]> {
-  const currentEvents = await getEvents();
-
-  // Optimistic deletion
-  const updatedList = currentEvents.filter((evt) => evt.id !== eventId);
-  saveMediaToIndexedDB(STORAGE_KEY, updatedList);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
-
-  // Delete from Firestore
-  deleteDocument(COLLECTION_NAME, eventId).catch((err) =>
-    console.warn('Non-critical Firestore deletion error:', err)
-  );
-
-  return updatedList;
+  const manifest = await getSystemManifest();
+  const updatedEvents = manifest.events.filter((evt) => evt.id !== eventId);
+  await saveSystemManifest({ ...manifest, events: updatedEvents });
+  notifySubscribers(updatedEvents);
+  return updatedEvents;
 }

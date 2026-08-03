@@ -9,6 +9,7 @@ import type {
 } from '../types/supabase';
 
 export const BUCKET_NAME = 'memories';
+export type UploadProgressCallback = (progress: number) => void;
 
 /**
  * Storage Service provides reusable helper methods for Supabase Storage.

@@ -1,72 +1,47 @@
-import {
-  subscribeToCollection,
-  addDocument,
-  updateDocument,
-  deleteDocument,
-  type BaseDoc,
-} from '../firebase/firestore';
+import { getSystemManifest, saveSystemManifest } from './supabaseSync.service';
 
-export interface Letter extends BaseDoc {
+export interface Letter {
+  id: string;
   title: string;
   eventName: string;
   content: string;
   letterDate: string;
   author: string;
   favorite?: boolean;
+  createdAt?: string;
 }
 
-const COLLECTION_NAME = 'letters';
-const LETTERS_CACHE_KEY = 'fb_letters';
+const subscribers = new Set<(letters: Letter[]) => void>();
 
-/**
- * Reads persistent letters from local cache
- */
-const getLettersFromCache = (): Letter[] => {
-  const raw = localStorage.getItem(LETTERS_CACHE_KEY);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+const notifySubscribers = (letters: Letter[]) => {
+  subscribers.forEach((cb) => {
+    try {
+      cb(letters);
+    } catch (e) {
+      console.error('[DEBUG Letters Refresh Error]', e);
+    }
+  });
 };
 
-const saveLettersToCache = (letters: Letter[]) => {
-  try {
-    localStorage.setItem(LETTERS_CACHE_KEY, JSON.stringify(letters));
-  } catch {}
+export const fetchLettersFromSupabase = async (): Promise<Letter[]> => {
+  const manifest = await getSystemManifest();
+  return manifest.letters || [];
 };
 
-/**
- * Realtime listener for Personal Letters
- */
 export const subscribeLetters = (
   onData: (letters: Letter[]) => void
 ): (() => void) => {
-  return subscribeToCollection<Letter>(
-    COLLECTION_NAME,
-    (items) => {
-      const cached = getLettersFromCache();
-      const map = new Map<string, Letter>();
+  subscribers.add(onData);
 
-      cached.forEach((l) => map.set(l.id, l));
-      items.forEach((l) => map.set(l.id, l));
+  fetchLettersFromSupabase().then((items) => {
+    notifySubscribers(items);
+  });
 
-      const combined = Array.from(map.values()).sort(
-        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-      );
-      saveLettersToCache(combined);
-      onData(combined);
-    },
-    'createdAt',
-    'desc'
-  );
+  return () => {
+    subscribers.delete(onData);
+  };
 };
 
-/**
- * Adds a new Personal Letter
- */
 export const addLetter = async (metadata: {
   title: string;
   eventName: string;
@@ -75,16 +50,7 @@ export const addLetter = async (metadata: {
   author?: string;
   favorite?: boolean;
 }): Promise<string> => {
-  const docId = await addDocument(COLLECTION_NAME, {
-    title: metadata.title || 'Untitled Letter',
-    eventName: metadata.eventName || 'Special Memory',
-    content: metadata.content || '',
-    letterDate: metadata.letterDate || new Date().toISOString().split('T')[0],
-    author: metadata.author || 'Sanjana',
-    favorite: !!metadata.favorite,
-  });
-
-  const current = getLettersFromCache();
+  const docId = `letter_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const newItem: Letter = {
     id: docId,
     title: metadata.title || 'Untitled Letter',
@@ -95,28 +61,25 @@ export const addLetter = async (metadata: {
     favorite: !!metadata.favorite,
     createdAt: new Date().toISOString(),
   };
-  saveLettersToCache([newItem, ...current]);
 
+  const manifest = await getSystemManifest();
+  const updatedLetters = [newItem, ...manifest.letters];
+  await saveSystemManifest({ ...manifest, letters: updatedLetters });
+
+  notifySubscribers(updatedLetters);
   return docId;
 };
 
-/**
- * Updates a Personal Letter
- */
 export const updateLetter = async (
   letterId: string,
   updates: Partial<Omit<Letter, 'id'>>
 ): Promise<void> => {
-  const current = getLettersFromCache();
-  const updated = current.map((l) => (l.id === letterId ? { ...l, ...updates } : l));
-  saveLettersToCache(updated);
-
-  await updateDocument(COLLECTION_NAME, letterId, updates);
+  const manifest = await getSystemManifest();
+  const updatedLetters = manifest.letters.map((l) => (l.id === letterId ? { ...l, ...updates } : l));
+  await saveSystemManifest({ ...manifest, letters: updatedLetters });
+  notifySubscribers(updatedLetters);
 };
 
-/**
- * Toggles favorite badge of a letter
- */
 export const toggleLetterFavorite = async (
   letterId: string,
   currentFavoriteState: boolean
@@ -124,13 +87,9 @@ export const toggleLetterFavorite = async (
   await updateLetter(letterId, { favorite: !currentFavoriteState });
 };
 
-/**
- * Deletes a letter permanently
- */
 export const deleteLetter = async (letterId: string): Promise<void> => {
-  const current = getLettersFromCache();
-  const filtered = current.filter((l) => l.id !== letterId);
-  saveLettersToCache(filtered);
-
-  await deleteDocument(COLLECTION_NAME, letterId);
+  const manifest = await getSystemManifest();
+  const updatedLetters = manifest.letters.filter((l) => l.id !== letterId);
+  await saveSystemManifest({ ...manifest, letters: updatedLetters });
+  notifySubscribers(updatedLetters);
 };
