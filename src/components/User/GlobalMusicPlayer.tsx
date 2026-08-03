@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { subscribeMusic, setActiveBackgroundSong, type SongItem } from '../../services/musicService';
 import { Play, Pause, Volume2, VolumeX, Square, Music as MusicIcon, Sparkles } from 'lucide-react';
 
@@ -178,7 +179,12 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
   }
 
   return (
-    <div className="fixed bottom-5 left-5 z-40 animate-fadeIn select-none">
+    <motion.div
+      drag
+      dragMomentum={false}
+      whileDrag={{ scale: 1.05, cursor: 'grabbing' }}
+      className="fixed bottom-5 left-5 z-40 animate-fadeIn select-none cursor-grab active:cursor-grabbing"
+    >
       <div className="flex items-center gap-3 backdrop-blur-2xl bg-slate-950/90 border border-rose-500/40 rounded-2xl p-2.5 sm:px-4 sm:py-3 shadow-2xl shadow-rose-950/40">
         {/* Animated Equalizer Soundwaves */}
         <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 p-0.5 shadow-md flex items-center justify-center shrink-0">
@@ -236,6 +242,6 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
