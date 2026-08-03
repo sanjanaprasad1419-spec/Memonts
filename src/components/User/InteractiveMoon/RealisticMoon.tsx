@@ -17,7 +17,8 @@ export const RealisticMoon: React.FC = () => {
       onDragStart={() => setIsDragging(true)}
       onDragEnd={() => setIsDragging(false)}
       whileDrag={{ scale: 1.08, cursor: 'grabbing' }}
-      className="absolute top-6 left-6 z-30 flex items-center gap-3 select-none cursor-grab active:cursor-grabbing pointer-events-auto"
+      style={{ touchAction: 'none' }}
+      className="absolute top-6 left-6 z-50 flex items-center gap-3 select-none cursor-grab active:cursor-grabbing pointer-events-auto"
     >
       {/* Moon Container */}
       <div

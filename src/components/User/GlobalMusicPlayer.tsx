@@ -184,7 +184,8 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
       dragMomentum={false}
       dragElastic={0.1}
       whileDrag={{ scale: 1.04, cursor: 'grabbing' }}
-      className="fixed bottom-5 left-5 z-50 animate-fadeIn select-none cursor-grab active:cursor-grabbing pointer-events-auto"
+      style={{ touchAction: 'none' }}
+      className="fixed bottom-5 left-5 z-[100] animate-fadeIn select-none cursor-grab active:cursor-grabbing pointer-events-auto"
     >
       <div className="flex items-center gap-3 backdrop-blur-2xl bg-slate-950/95 border border-rose-500/50 rounded-2xl p-2.5 sm:px-4 sm:py-3 shadow-[0_10px_35px_rgba(0,0,0,0.85)] shadow-rose-950/50">
         {/* Animated Equalizer Soundwaves / Drag Indicator */}
