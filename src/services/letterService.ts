@@ -100,16 +100,35 @@ export const subscribeLetters = (
   };
 };
 
-export const addLetter = async (metadata: {
-  title: string;
-  eventName: string;
-  content: string;
-  letterDate?: string;
-  author?: string;
-  favorite?: boolean;
-}): Promise<string> => {
+export const addLetter = async (
+  metadata: {
+    title: string;
+    eventName: string;
+    content: string;
+    letterDate?: string;
+    author?: string;
+    favorite?: boolean;
+  },
+  rawFile?: File | null
+): Promise<string> => {
   const docId = `letter_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const storagePath = `letters/${docId}.json`;
+
+  if (rawFile) {
+    try {
+      const rawFileName = rawFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      await StorageService.uploadFile({
+        folder: STORAGE_FOLDER,
+        file: rawFile,
+        customFileName: `${Date.now()}_${rawFileName}`,
+        upsert: true,
+        contentType: rawFile.type || 'text/plain',
+      });
+      console.log(`[DEBUG letterService] Uploaded original text file "${rawFileName}" to Supabase Storage memories/letters/`);
+    } catch (e) {
+      console.warn('[DEBUG letterService Upload Raw File Error]', e);
+    }
+  }
 
   const newItem: Letter = {
     id: docId,

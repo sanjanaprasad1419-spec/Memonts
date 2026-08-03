@@ -52,6 +52,7 @@ export const LettersTab: React.FC = () => {
   const [author, setAuthor] = useState<string>('Sanjana');
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
   const [fileName, setFileName] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     const unsub = subscribeLetters((items) => setLetters(items));
@@ -72,6 +73,7 @@ export const LettersTab: React.FC = () => {
     setIsFavorite(false);
     setInputMode('manual');
     setFileName('');
+    setSelectedFile(null);
     setShowModal(false);
     setEditingLetter(null);
   };
@@ -80,6 +82,7 @@ export const LettersTab: React.FC = () => {
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setSelectedFile(file);
       setFileName(file.name);
 
       const reader = new FileReader();
@@ -122,15 +125,18 @@ export const LettersTab: React.FC = () => {
         });
         showToast('Letter updated successfully!');
       } else {
-        await addLetter({
-          title: title.trim(),
-          eventName: eventName.trim(),
-          content: content.trim(),
-          letterDate,
-          author: author.trim() || 'Sanjana',
-          favorite: isFavorite,
-        });
-        showToast('Letter posted successfully!');
+        await addLetter(
+          {
+            title: title.trim(),
+            eventName: eventName.trim(),
+            content: content.trim(),
+            letterDate,
+            author: author.trim() || 'Sanjana',
+            favorite: isFavorite,
+          },
+          inputMode === 'file' ? selectedFile : null
+        );
+        showToast('Letter posted and saved to Supabase Storage!');
       }
     } catch (err: any) {
       showToast(err.message || 'Failed to save letter', 'error');
