@@ -159,7 +159,7 @@ export const Universe3DCanvas: React.FC = () => {
       <StarCursor />
 
       {/* Date Header Badge */}
-      <div className="absolute top-20 left-6 z-20 hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-800 text-xs font-medium text-slate-300 shadow-xl">
+      <div className="absolute top-32 left-6 z-20 hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-800 text-xs font-medium text-slate-300 shadow-xl">
         <Calendar className="w-3.5 h-3.5 text-rose-400" />
         <span>{currentDateFormatted}</span>
       </div>
