@@ -4,7 +4,8 @@ import { getSystemManifest, saveSystemManifest } from './supabaseSync.service';
 export interface Letter {
   id: string;
   title: string;
-  eventName: string;
+  eventName?: string;
+  eventId?: string;
   content: string;
   letterDate: string;
   author: string;
@@ -103,7 +104,8 @@ export const subscribeLetters = (
 export const addLetter = async (
   metadata: {
     title: string;
-    eventName: string;
+    eventName?: string;
+    eventId?: string;
     content: string;
     letterDate?: string;
     author?: string;
@@ -135,6 +137,7 @@ export const addLetter = async (
     path: storagePath,
     title: metadata.title || 'Untitled Letter',
     eventName: metadata.eventName || 'Special Memory',
+    eventId: metadata.eventId || 'uncategorized',
     content: metadata.content || '',
     letterDate: metadata.letterDate || new Date().toISOString().split('T')[0],
     author: metadata.author || 'Sanjana',

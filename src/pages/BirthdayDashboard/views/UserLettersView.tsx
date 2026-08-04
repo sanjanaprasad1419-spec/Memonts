@@ -33,7 +33,7 @@ export const UserLettersView: React.FC<UserLettersViewProps> = ({ onBack }) => {
     return () => unsubscribe();
   }, []);
 
-  const uniqueEvents = Array.from(new Set(letters.map((l) => l.eventName))).filter(Boolean);
+  const uniqueEvents = Array.from(new Set(letters.map((l) => l.eventName))).filter((e): e is string => Boolean(e));
 
   const filteredLetters = letters.filter((l) =>
     selectedEventFilter === 'all' ? true : l.eventName === selectedEventFilter

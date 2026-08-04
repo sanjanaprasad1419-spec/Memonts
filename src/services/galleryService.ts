@@ -7,6 +7,7 @@ export interface GalleryPhoto {
   caption: string;
   memoryDate: string;
   favorite: boolean;
+  eventId?: string;
   createdAt?: string;
   path?: string;
 }
@@ -57,6 +58,7 @@ export const fetchGalleryPhotosFromSupabase = async (): Promise<GalleryPhoto[]> 
       caption: existing?.caption || file.name.replace(/^\d+_/, '').replace(/\.[^/.]+$/, '').replace(/_/g, ' '),
       memoryDate: existing?.memoryDate || dateStr,
       favorite: existing?.favorite || false,
+      eventId: existing?.eventId || 'uncategorized',
       createdAt: file.created_at || new Date().toISOString(),
     };
   });
@@ -86,7 +88,7 @@ export const subscribeGalleryPhotos = (
 
 export const addGalleryPhoto = async (
   file: File,
-  metadata: { caption: string; memoryDate: string; favorite?: boolean },
+  metadata: { caption: string; memoryDate: string; favorite?: boolean; eventId?: string },
   onProgress?: UploadProgressCallback
 ): Promise<string> => {
   console.log(`[DEBUG Upload Started] File: "${file.name}" (${file.size} bytes), Folder: "gallery", Provider: Supabase Storage`);
@@ -118,6 +120,7 @@ export const addGalleryPhoto = async (
     caption: metadata.caption || 'Cherished Memory',
     memoryDate: metadata.memoryDate || new Date().toISOString().split('T')[0],
     favorite: !!metadata.favorite,
+    eventId: metadata.eventId || 'uncategorized',
     createdAt: new Date().toISOString(),
   };
 

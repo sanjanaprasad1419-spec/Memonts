@@ -9,6 +9,7 @@ import {
   deleteLetter,
   type Letter,
 } from '../../../services/letterService';
+import { subscribeToEvents, type BirthdayEvent } from '../../../services/eventService';
 import {
   FileText,
   Plus,
@@ -32,6 +33,7 @@ type InputMode = 'manual' | 'file';
 
 export const LettersTab: React.FC = () => {
   const [letters, setLetters] = useState<Letter[]>([]);
+  const [events, setEvents] = useState<BirthdayEvent[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all');
   const [filterFavoritesOnly, setFilterFavoritesOnly] = useState<boolean>(false);
@@ -46,7 +48,7 @@ export const LettersTab: React.FC = () => {
   // Form State
   const [inputMode, setInputMode] = useState<InputMode>('manual');
   const [title, setTitle] = useState<string>('');
-  const [eventName, setEventName] = useState<string>('30th Birthday');
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [content, setContent] = useState<string>('');
   const [letterDate, setLetterDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [author, setAuthor] = useState<string>('Sanjana');
@@ -55,8 +57,17 @@ export const LettersTab: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
-    const unsub = subscribeLetters((items) => setLetters(items));
-    return () => unsub();
+    const unsubLetters = subscribeLetters((items) => setLetters(items));
+    const unsubEvents = subscribeToEvents((evts) => {
+      setEvents(evts);
+      if (evts.length > 0 && !selectedEventId) {
+        setSelectedEventId(evts[0].id);
+      }
+    });
+    return () => {
+      unsubLetters();
+      unsubEvents();
+    };
   }, []);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
@@ -66,7 +77,7 @@ export const LettersTab: React.FC = () => {
 
   const resetForm = () => {
     setTitle('');
-    setEventName('30th Birthday');
+    setSelectedEventId(events.length > 0 ? events[0].id : '');
     setContent('');
     setLetterDate(new Date().toISOString().split('T')[0]);
     setAuthor('Sanjana');
@@ -108,7 +119,7 @@ export const LettersTab: React.FC = () => {
   const handleSaveLetter = async (e: FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return showToast('Please enter a title for the letter', 'error');
-    if (!eventName.trim()) return showToast('Please enter an event name', 'error');
+    if (!selectedEventId) return showToast('Please select an event before saving letter', 'error');
     if (!content.trim()) return showToast('Please write or upload letter content', 'error');
 
     setIsSaving(true);
@@ -117,7 +128,7 @@ export const LettersTab: React.FC = () => {
       if (editingLetter) {
         await updateLetter(editingLetter.id, {
           title: title.trim(),
-          eventName: eventName.trim(),
+          eventId: selectedEventId,
           content: content.trim(),
           letterDate,
           author: author.trim() || 'Sanjana',
@@ -128,7 +139,7 @@ export const LettersTab: React.FC = () => {
         await addLetter(
           {
             title: title.trim(),
-            eventName: eventName.trim(),
+            eventId: selectedEventId,
             content: content.trim(),
             letterDate,
             author: author.trim() || 'Sanjana',
@@ -149,7 +160,7 @@ export const LettersTab: React.FC = () => {
   const handleOpenEdit = (letter: Letter) => {
     setEditingLetter(letter);
     setTitle(letter.title);
-    setEventName(letter.eventName);
+    setSelectedEventId(letter.eventId || '');
     setContent(letter.content);
     setLetterDate(letter.letterDate);
     setAuthor(letter.author);
@@ -175,7 +186,7 @@ export const LettersTab: React.FC = () => {
   const filteredLetters = letters.filter((l) => {
     const matchesSearch =
       l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.eventName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.eventName && l.eventName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       l.content.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesEvent = selectedEventFilter === 'all' || l.eventName === selectedEventFilter;
@@ -417,16 +428,27 @@ export const LettersTab: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold uppercase text-slate-400">
-                    Associated Event Name *
+                    Event <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={eventName}
-                    onChange={(e) => setEventName(e.target.value)}
-                    placeholder="e.g. 30th Birthday, First Meeting"
-                    required
-                    className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2.5 border border-slate-800 focus:border-rose-500/80 outline-none"
-                  />
+                  {events.length === 0 ? (
+                    <p className="text-xs font-semibold text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/30">
+                      No events available. Please create an event first.
+                    </p>
+                  ) : (
+                    <select
+                      value={selectedEventId}
+                      onChange={(e) => setSelectedEventId(e.target.value)}
+                      required
+                      disabled={isSaving}
+                      className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2.5 border border-slate-800 focus:border-rose-500/80 outline-none cursor-pointer"
+                    >
+                      {events.map((evt) => (
+                        <option key={evt.id} value={evt.id}>
+                          {evt.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -529,8 +551,8 @@ export const LettersTab: React.FC = () => {
                 <ActionButton label="Cancel" variant="secondary" onClick={resetForm} />
                 <button
                   type="submit"
-                  disabled={isSaving}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 border border-rose-500/30 shadow-lg cursor-pointer"
+                  disabled={isSaving || events.length === 0 || !selectedEventId}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 border border-rose-500/30 shadow-lg cursor-pointer disabled:opacity-50"
                 >
                   <Heart className="w-4 h-4 fill-white" />
                   <span>{editingLetter ? 'Save Changes' : 'Post Letter to Shubham'}</span>

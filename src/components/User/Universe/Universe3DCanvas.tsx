@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 
 import { RealisticMoon } from './InteractiveMoon/RealisticMoon';
+import { DistantPlanets } from './DistantPlanets/DistantPlanets';
 
 export const Universe3DCanvas: React.FC = () => {
   const [selectedChapter, setSelectedChapter] = useState<WorldChapter3D | null>(null);
@@ -203,6 +204,7 @@ export const Universe3DCanvas: React.FC = () => {
             >
               <UniverseLighting />
               <UniverseParticles />
+              <DistantPlanets />
               <CinematicCamera
                 isZooming={isZooming}
                 onZoomComplete={() => {}}

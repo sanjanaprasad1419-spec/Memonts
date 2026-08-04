@@ -9,6 +9,7 @@ import {
   deleteGalleryPhoto,
   type GalleryPhoto,
 } from '../../../services/galleryService';
+import { subscribeToEvents, type BirthdayEvent } from '../../../services/eventService';
 import {
   Image as ImageIcon,
   Upload,
@@ -26,6 +27,7 @@ import {
 
 export const GalleryTab: React.FC = () => {
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
+  const [events, setEvents] = useState<BirthdayEvent[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterFavoritesOnly, setFilterFavoritesOnly] = useState<boolean>(false);
 
@@ -39,13 +41,23 @@ export const GalleryTab: React.FC = () => {
   // Form State
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [caption, setCaption] = useState<string>('');
   const [memoryDate, setMemoryDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
 
   useEffect(() => {
-    const unsub = subscribeGalleryPhotos((items) => setGalleryPhotos(items));
-    return () => unsub();
+    const unsubPhotos = subscribeGalleryPhotos((items) => setGalleryPhotos(items));
+    const unsubEvents = subscribeToEvents((evts) => {
+      setEvents(evts);
+      if (evts.length > 0 && !selectedEventId) {
+        setSelectedEventId(evts[0].id);
+      }
+    });
+    return () => {
+      unsubPhotos();
+      unsubEvents();
+    };
   }, []);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
@@ -65,6 +77,7 @@ export const GalleryTab: React.FC = () => {
     setFile(null);
     setPreviewUrl('');
     setCaption('');
+    setSelectedEventId(events.length > 0 ? events[0].id : '');
     setMemoryDate(new Date().toISOString().split('T')[0]);
     setIsFavorite(false);
     setUploadProgress(0);
@@ -75,6 +88,7 @@ export const GalleryTab: React.FC = () => {
     e.preventDefault();
     if (!file) return showToast('Please select an image file to upload', 'error');
     if (!caption.trim()) return showToast('Please enter a caption for the memory', 'error');
+    if (!selectedEventId) return showToast('Please select an event before uploading media', 'error');
 
     setIsUploading(true);
     setUploadProgress(0);
@@ -82,7 +96,7 @@ export const GalleryTab: React.FC = () => {
     try {
       await addGalleryPhoto(
         file,
-        { caption: caption.trim(), memoryDate, favorite: isFavorite },
+        { caption: caption.trim(), memoryDate, favorite: isFavorite, eventId: selectedEventId },
         (progress) => setUploadProgress(progress)
       );
       showToast('Gallery photo uploaded to Constellation!');
@@ -103,6 +117,7 @@ export const GalleryTab: React.FC = () => {
         caption: editingGalleryPhoto.caption,
         memoryDate: editingGalleryPhoto.memoryDate,
         favorite: editingGalleryPhoto.favorite,
+        eventId: editingGalleryPhoto.eventId,
       });
       showToast('Constellation memory updated');
       setEditingGalleryPhoto(null);
@@ -306,6 +321,31 @@ export const GalleryTab: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold uppercase text-slate-400">
+                  Event <span className="text-rose-400">*</span>
+                </label>
+                {events.length === 0 ? (
+                  <p className="text-xs font-semibold text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/30">
+                    No events available. Please create an event first.
+                  </p>
+                ) : (
+                  <select
+                    value={selectedEventId}
+                    onChange={(e) => setSelectedEventId(e.target.value)}
+                    required
+                    disabled={isUploading}
+                    className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2.5 border border-slate-800 focus:border-rose-500/80 outline-none cursor-pointer"
+                  >
+                    {events.map((evt) => (
+                      <option key={evt.id} value={evt.id}>
+                        {evt.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold uppercase text-slate-400">
                   Memory Date
                 </label>
                 <input
@@ -346,7 +386,7 @@ export const GalleryTab: React.FC = () => {
                 <ActionButton label="Cancel" variant="secondary" onClick={resetForm} />
                 <button
                   type="submit"
-                  disabled={isUploading}
+                  disabled={isUploading || events.length === 0 || !selectedEventId}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm text-white bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 border border-rose-500/30 shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {isUploading ? (
@@ -392,6 +432,24 @@ export const GalleryTab: React.FC = () => {
                   }
                   className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2 border border-slate-800 outline-none"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold uppercase text-slate-400">Associated Event</label>
+                <select
+                  value={editingGalleryPhoto.eventId || 'uncategorized'}
+                  onChange={(e) =>
+                    setEditingGalleryPhoto({ ...editingGalleryPhoto, eventId: e.target.value })
+                  }
+                  className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2 border border-slate-800 outline-none cursor-pointer"
+                >
+                  <option value="uncategorized">Uncategorized Memories</option>
+                  {events.map((evt) => (
+                    <option key={evt.id} value={evt.id}>
+                      {evt.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1.5">

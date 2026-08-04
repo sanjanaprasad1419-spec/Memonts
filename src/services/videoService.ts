@@ -5,7 +5,8 @@ export interface VideoItem {
   id: string;
   videoUrl: string;
   title: string;
-  eventName: string;
+  eventName?: string;
+  eventId?: string;
   videoDate: string;
   description?: string;
   favorite?: boolean;
@@ -50,6 +51,7 @@ export const fetchVideosFromSupabase = async (): Promise<VideoItem[]> => {
       videoUrl: file.publicUrl,
       title: existing?.title || file.name.replace(/^\d+_/, '').replace(/\.[^/.]+$/, '').replace(/_/g, ' '),
       eventName: existing?.eventName || 'Special Event',
+      eventId: existing?.eventId || 'uncategorized',
       videoDate: existing?.videoDate || (file.created_at ? new Date(file.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
       description: existing?.description || '',
       favorite: existing?.favorite || false,
@@ -82,7 +84,8 @@ export const addVideo = async (
   file: File,
   metadata: {
     title: string;
-    eventName: string;
+    eventName?: string;
+    eventId?: string;
     videoDate?: string;
     description?: string;
     favorite?: boolean;
@@ -116,6 +119,7 @@ export const addVideo = async (
     videoUrl: publicUrl,
     title: metadata.title || file.name,
     eventName: metadata.eventName || 'Special Event',
+    eventId: metadata.eventId || 'uncategorized',
     videoDate: metadata.videoDate || new Date().toISOString().split('T')[0],
     description: metadata.description || '',
     favorite: !!metadata.favorite,

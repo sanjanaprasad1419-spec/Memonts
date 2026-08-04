@@ -41,7 +41,7 @@ export const UserVideosView: React.FC<UserVideosViewProps> = ({ onBack }) => {
     window.dispatchEvent(new Event('resume-bg-music'));
   };
 
-  const uniqueEvents = Array.from(new Set(videos.map((v) => v.eventName))).filter(Boolean);
+  const uniqueEvents = Array.from(new Set(videos.map((v) => v.eventName))).filter((e): e is string => Boolean(e));
 
   const filteredVideos = videos.filter((v) =>
     selectedEventFilter === 'all' ? true : v.eventName === selectedEventFilter

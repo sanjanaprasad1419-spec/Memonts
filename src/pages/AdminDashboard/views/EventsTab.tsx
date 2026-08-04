@@ -21,6 +21,12 @@ import {
   type BirthdayEvent,
 } from '../../../services/eventService';
 import { StorageService } from '../../../services/storage.service';
+import {
+  getSystemManifest,
+  reassignEventMedia,
+  UNCATEGORIZED_EVENT_ID,
+} from '../../../services/supabaseSync.service';
+import { Camera, Video as VideoIcon, FileText, Mic } from 'lucide-react';
 
 export const EventsTab: React.FC = () => {
   const [events, setEvents] = useState<BirthdayEvent[]>([]);
@@ -29,6 +35,17 @@ export const EventsTab: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingEvent, setEditingEvent] = useState<BirthdayEvent | null>(null);
+
+  // Delete Protection Modal State
+  const [deleteTargetEvent, setDeleteTargetEvent] = useState<BirthdayEvent | null>(null);
+  const [deleteLinkedStats, setDeleteLinkedStats] = useState<{
+    photos: number;
+    videos: number;
+    letters: number;
+    voiceNotes: number;
+    total: number;
+  } | null>(null);
+  const [reassignDestinationId, setReassignDestinationId] = useState<string>(UNCATEGORIZED_EVENT_ID);
 
   // Form Fields State
   const [name, setName] = useState<string>('');
@@ -161,16 +178,54 @@ export const EventsTab: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this event?')) return;
-
+  const handleDeletePrompt = async (evt: BirthdayEvent) => {
     try {
-      const updated = await deleteEvent(id);
-      setEvents(updated);
-      showToast('success', 'Event deleted successfully');
+      const manifest = await getSystemManifest();
+      const isMatch = (item: { eventId?: string; eventName?: string }) =>
+        item.eventId === evt.id || (item.eventName && item.eventName.toLowerCase() === evt.name.toLowerCase());
+
+      const photos = (manifest.galleryPhotos || []).filter(isMatch).length;
+      const videos = (manifest.videos || []).filter(isMatch).length;
+      const letters = (manifest.letters || []).filter(isMatch).length;
+      const voiceNotes = (manifest.voiceNotes || []).filter(isMatch).length;
+      const total = photos + videos + letters + voiceNotes;
+
+      if (total > 0) {
+        setDeleteTargetEvent(evt);
+        setDeleteLinkedStats({ photos, videos, letters, voiceNotes, total });
+        setReassignDestinationId(UNCATEGORIZED_EVENT_ID);
+      } else {
+        if (window.confirm(`Delete empty event "${evt.name}"?`)) {
+          const updated = await deleteEvent(evt.id);
+          setEvents(updated);
+          showToast('success', 'Event deleted successfully');
+        }
+      }
     } catch (err) {
-      console.error('Failed to delete event:', err);
-      showToast('error', 'Failed to delete event.');
+      console.error('Error preparing event deletion:', err);
+    }
+  };
+
+  const handleConfirmProtectedDelete = async () => {
+    if (!deleteTargetEvent) return;
+
+    setSubmitting(true);
+    try {
+      // 1. Reassign linked media to destination event or uncategorized
+      await reassignEventMedia(deleteTargetEvent.id, reassignDestinationId);
+
+      // 2. Safely delete the event
+      const updated = await deleteEvent(deleteTargetEvent.id);
+      setEvents(updated);
+
+      showToast('success', `Media reassigned and event "${deleteTargetEvent.name}" deleted.`);
+      setDeleteTargetEvent(null);
+      setDeleteLinkedStats(null);
+    } catch (err) {
+      console.error('Failed protected delete:', err);
+      showToast('error', 'Failed to reassign media and delete event.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -284,12 +339,102 @@ export const EventsTab: React.FC = () => {
                     label="Delete"
                     icon={Trash2}
                     variant="danger"
-                    onClick={() => handleDelete(evt.id)}
+                    onClick={() => handleDeletePrompt(evt)}
                   />
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Event Delete Protection Modal */}
+      {deleteTargetEvent && deleteLinkedStats && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-lg bg-slate-900 border border-rose-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Event Delete Protection</h3>
+                  <p className="text-xs text-rose-400 font-semibold">{deleteTargetEvent.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDeleteTargetEvent(null)}
+                className="p-1.5 rounded-full bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-xs text-slate-300 leading-relaxed">
+                This event contains <strong className="text-white">{deleteLinkedStats.total} linked memory items</strong>. Media files will <strong className="text-emerald-400">NEVER be deleted or lost</strong>.
+              </p>
+
+              {/* Linked Items Breakdown */}
+              <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-slate-300 bg-slate-950/80 p-3 rounded-2xl border border-slate-800">
+                <span className="flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{deleteLinkedStats.photos} Photos</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <VideoIcon className="w-3.5 h-3.5 text-blue-400" />
+                  <span>{deleteLinkedStats.videos} Videos</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-rose-400" />
+                  <span>{deleteLinkedStats.letters} Letters</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{deleteLinkedStats.voiceNotes} Voice Notes</span>
+                </span>
+              </div>
+
+              {/* Destination Dropdown */}
+              <div className="space-y-2 pt-2">
+                <label className="block text-xs font-bold uppercase tracking-wide text-slate-300">
+                  Select Destination for Linked Media:
+                </label>
+                <select
+                  value={reassignDestinationId}
+                  onChange={(e) => setReassignDestinationId(e.target.value)}
+                  className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2.5 border border-slate-800 focus:border-rose-500/80 outline-none cursor-pointer"
+                >
+                  <option value={UNCATEGORIZED_EVENT_ID}>📂 Move to "Uncategorized Memories"</option>
+                  {events
+                    .filter((e) => e.id !== deleteTargetEvent.id)
+                    .map((e) => (
+                      <option key={e.id} value={e.id}>
+                        🎂 Move to "{e.name}"
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTargetEvent(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleConfirmProtectedDelete}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 border border-rose-500/30 shadow-lg cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? 'Reassigning...' : 'Reassign Media & Delete Event'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

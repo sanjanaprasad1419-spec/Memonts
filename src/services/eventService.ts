@@ -77,3 +77,57 @@ export async function deleteEvent(eventId: string): Promise<BirthdayEvent[]> {
   notifySubscribers(updatedEvents);
   return updatedEvents;
 }
+
+/**
+ * 3-Tier Event Cover Image Priority Resolution:
+ * 1. Custom Event Cover uploaded during event creation/editing
+ * 2. First Photo belonging to that Event
+ * 3. Fallback null (triggers beautiful cosmic placeholder theme component)
+ */
+export function getEventCover(event: BirthdayEvent, eventPhotos: Array<{ imageUrl: string }>): string | null {
+  if (event.coverImage && event.coverImage.trim()) {
+    return event.coverImage;
+  }
+  if (eventPhotos && eventPhotos.length > 0 && eventPhotos[0].imageUrl) {
+    return eventPhotos[0].imageUrl;
+  }
+  return null;
+}
+
+export interface EventStats {
+  photoCount: number;
+  videoCount: number;
+  letterCount: number;
+  voiceNoteCount: number;
+  totalMemories: number;
+}
+
+export function getEventStats(
+  eventId: string,
+  photos: Array<{ eventId?: string; eventName?: string }>,
+  videos: Array<{ eventId?: string; eventName?: string }>,
+  letters: Array<{ eventId?: string; eventName?: string }>,
+  voiceNotes: Array<{ eventId?: string; eventName?: string }>,
+  eventName?: string
+): EventStats {
+  const isMatch = (item: { eventId?: string; eventName?: string }) => {
+    if (item.eventId && item.eventId === eventId) return true;
+    if (eventName && item.eventName && item.eventName.toLowerCase() === eventName.toLowerCase()) return true;
+    return false;
+  };
+
+  const photoCount = photos.filter(isMatch).length;
+  const videoCount = videos.filter(isMatch).length;
+  const letterCount = letters.filter(isMatch).length;
+  const voiceNoteCount = voiceNotes.filter(isMatch).length;
+  const totalMemories = photoCount + videoCount + letterCount + voiceNoteCount;
+
+  return {
+    photoCount,
+    videoCount,
+    letterCount,
+    voiceNoteCount,
+    totalMemories,
+  };
+}
+

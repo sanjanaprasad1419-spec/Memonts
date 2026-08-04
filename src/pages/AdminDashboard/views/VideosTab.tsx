@@ -9,6 +9,7 @@ import {
   deleteVideo,
   type VideoItem,
 } from '../../../services/videoService';
+import { subscribeToEvents, type BirthdayEvent } from '../../../services/eventService';
 import {
   Plus,
   Edit3,
@@ -28,6 +29,7 @@ import {
 
 export const VideosTab: React.FC = () => {
   const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [events, setEvents] = useState<BirthdayEvent[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all');
   const [filterFavoritesOnly, setFilterFavoritesOnly] = useState<boolean>(false);
@@ -43,14 +45,23 @@ export const VideosTab: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [title, setTitle] = useState<string>('');
-  const [eventName, setEventName] = useState<string>('30th Birthday');
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [videoDate, setVideoDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState<string>('');
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
 
   useEffect(() => {
-    const unsub = subscribeVideos((items) => setVideos(items));
-    return () => unsub();
+    const unsubVideos = subscribeVideos((items) => setVideos(items));
+    const unsubEvents = subscribeToEvents((evts) => {
+      setEvents(evts);
+      if (evts.length > 0 && !selectedEventId) {
+        setSelectedEventId(evts[0].id);
+      }
+    });
+    return () => {
+      unsubVideos();
+      unsubEvents();
+    };
   }, []);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
@@ -74,7 +85,7 @@ export const VideosTab: React.FC = () => {
     setFile(null);
     setPreviewUrl('');
     setTitle('');
-    setEventName('30th Birthday');
+    setSelectedEventId(events.length > 0 ? events[0].id : '');
     setVideoDate(new Date().toISOString().split('T')[0]);
     setDescription('');
     setIsFavorite(false);
@@ -86,14 +97,14 @@ export const VideosTab: React.FC = () => {
     e.preventDefault();
     if (!file) return showToast('Please select a video file to upload', 'error');
     if (!title.trim()) return showToast('Please enter a video title', 'error');
-    if (!eventName.trim()) return showToast('Please enter an event name', 'error');
+    if (!selectedEventId) return showToast('Please select an event before uploading video', 'error');
 
     setIsUploading(true);
 
     try {
       await addVideo(file, {
         title: title.trim(),
-        eventName: eventName.trim(),
+        eventId: selectedEventId,
         videoDate,
         description: description.trim(),
         favorite: isFavorite,
@@ -114,7 +125,7 @@ export const VideosTab: React.FC = () => {
     try {
       await updateVideo(editingVideo.id, {
         title: editingVideo.title,
-        eventName: editingVideo.eventName,
+        eventId: editingVideo.eventId,
         videoDate: editingVideo.videoDate,
         description: editingVideo.description,
         favorite: editingVideo.favorite,
@@ -143,7 +154,7 @@ export const VideosTab: React.FC = () => {
   const filteredVideos = videos.filter((v) => {
     const matchesSearch =
       v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.eventName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.eventName && v.eventName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (v.description && v.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesEvent = selectedEventFilter === 'all' || v.eventName === selectedEventFilter;
@@ -372,16 +383,27 @@ export const VideosTab: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold uppercase text-slate-400">
-                  Associated Event Name *
+                  Event <span className="text-rose-400">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={eventName}
-                  onChange={(e) => setEventName(e.target.value)}
-                  placeholder="e.g. 30th Birthday, Road Trip"
-                  required
-                  className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2.5 border border-slate-800 focus:border-rose-500/80 outline-none"
-                />
+                {events.length === 0 ? (
+                  <p className="text-xs font-semibold text-rose-400 bg-rose-500/10 p-3 rounded-xl border border-rose-500/30">
+                    No events available. Please create an event first.
+                  </p>
+                ) : (
+                  <select
+                    value={selectedEventId}
+                    onChange={(e) => setSelectedEventId(e.target.value)}
+                    required
+                    disabled={isUploading}
+                    className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2.5 border border-slate-800 focus:border-rose-500/80 outline-none cursor-pointer"
+                  >
+                    {events.map((evt) => (
+                      <option key={evt.id} value={evt.id}>
+                        {evt.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -474,15 +496,21 @@ export const VideosTab: React.FC = () => {
 
             <form onSubmit={handleUpdateVideoMeta} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase text-slate-400">Event Name</label>
-                <input
-                  type="text"
-                  value={editingVideo.eventName}
+                <label className="block text-xs font-semibold uppercase text-slate-400">Associated Event</label>
+                <select
+                  value={editingVideo.eventId || 'uncategorized'}
                   onChange={(e) =>
-                    setEditingVideo({ ...editingVideo, eventName: e.target.value })
+                    setEditingVideo({ ...editingVideo, eventId: e.target.value })
                   }
-                  className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2 border border-slate-800 outline-none"
-                />
+                  className="w-full bg-slate-950 text-slate-100 text-sm rounded-xl px-4 py-2 border border-slate-800 outline-none cursor-pointer"
+                >
+                  <option value="uncategorized">Uncategorized Memories</option>
+                  {events.map((evt) => (
+                    <option key={evt.id} value={evt.id}>
+                      {evt.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1.5">
