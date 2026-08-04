@@ -28,6 +28,7 @@ import {
 
 import { RealisticMoon } from './InteractiveMoon/RealisticMoon';
 import { DistantPlanets } from './DistantPlanets/DistantPlanets';
+import { FadedBackgroundCollage } from './FadedBackgroundCollage';
 
 export const Universe3DCanvas: React.FC = () => {
   const [selectedChapter, setSelectedChapter] = useState<WorldChapter3D | null>(null);
@@ -194,6 +195,8 @@ export const Universe3DCanvas: React.FC = () => {
             exit={{ opacity: 0, transition: { duration: 0.8 } }}
             className="absolute inset-0 z-10 w-full h-full"
           >
+            {/* Faded Background Photo Collage (5-photo batch rotation behind stars, moon & cards) */}
+            <FadedBackgroundCollage opacity={0.14} rotationIntervalMs={6000} />
             {/* Realistic Interactive Full Moon (Exclusively on 3D Universe Page) */}
             <RealisticMoon />
             <Canvas
