@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { subscribeMusic, setActiveBackgroundSong, type SongItem } from '../../services/musicService';
-import { Play, Pause, Volume2, VolumeX, Square, Music as MusicIcon, Sparkles } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Square, Music as MusicIcon, Sparkles, GripVertical } from 'lucide-react';
 
 interface GlobalMusicPlayerProps {
   isIntroPlaying?: boolean;
@@ -182,14 +182,18 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
     <motion.div
       drag
       dragMomentum={false}
-      dragElastic={0.1}
-      whileDrag={{ scale: 1.04, cursor: 'grabbing' }}
+      dragElastic={0.05}
+      whileDrag={{ scale: 1.05, boxShadow: '0 20px 40px rgba(0,0,0,0.9)' }}
       style={{ touchAction: 'none' }}
-      className="fixed bottom-5 left-5 z-[100] animate-fadeIn select-none cursor-grab active:cursor-grabbing pointer-events-auto"
+      className="fixed bottom-5 left-5 z-[100] animate-fadeIn select-none cursor-grab active:cursor-grabbing pointer-events-auto group"
+      title="Click and drag to move player anywhere"
     >
-      <div className="flex items-center gap-3 backdrop-blur-2xl bg-slate-950/95 border border-rose-500/50 rounded-2xl p-2.5 sm:px-4 sm:py-3 shadow-[0_10px_35px_rgba(0,0,0,0.85)] shadow-rose-950/50">
+      <div className="flex items-center gap-2.5 sm:gap-3 backdrop-blur-2xl bg-slate-950/95 border border-rose-500/50 hover:border-rose-400 rounded-2xl p-2 sm:px-4 sm:py-3 shadow-[0_10px_35px_rgba(0,0,0,0.85)] shadow-rose-950/50 transition-colors">
+        {/* Grip Handle Icon */}
+        <GripVertical className="w-4 h-4 text-slate-500 group-hover:text-rose-400 transition-colors shrink-0 cursor-grab active:cursor-grabbing" />
+
         {/* Animated Equalizer Soundwaves / Drag Indicator */}
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 p-0.5 shadow-md flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 p-0.5 shadow-md flex items-center justify-center shrink-0">
           <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
             {isPlaying ? (
               <div className="flex items-end justify-center gap-0.5 h-4">
@@ -204,7 +208,7 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
         </div>
 
         {/* Track Title & Artist */}
-        <div className="hidden sm:flex flex-col min-w-0 max-w-[180px] pointer-events-none">
+        <div className="flex flex-col min-w-0 max-w-[120px] sm:max-w-[180px] pointer-events-none">
           <span className="text-xs font-bold text-slate-100 truncate">
             {activeSong.title}
           </span>
@@ -222,28 +226,28 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
           {/* Play/Pause */}
           <button
             onClick={togglePlay}
-            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-rose-300 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-rose-300 transition-colors cursor-pointer"
             title={isPlaying ? 'Pause Music' : 'Play Background Music'}
           >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-rose-400" />}
+            {isPlaying ? <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-rose-400" />}
           </button>
 
           {/* Mute/Unmute */}
           <button
             onClick={toggleMute}
-            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
             title={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
+            {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
           </button>
 
           {/* Stop Button */}
           <button
             onClick={handleStop}
-            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
             title="Stop Music"
           >
-            <Square className="w-3.5 h-3.5 text-rose-400" />
+            <Square className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400" />
           </button>
         </div>
       </div>
