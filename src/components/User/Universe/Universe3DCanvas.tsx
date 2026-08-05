@@ -203,7 +203,7 @@ export const Universe3DCanvas: React.FC = () => {
             <Canvas
               dpr={[1, 2]}
               camera={{ position: [0, 0, 9.2], fov: 50 }}
-              gl={{ antialias: true, alpha: false }}
+              gl={{ antialias: true, alpha: true }}
               className="w-full h-full cursor-grab active:cursor-grabbing"
             >
               <UniverseLighting />
