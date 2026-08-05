@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, LogOut, User as UserIcon } from 'lucide-react';
+import { Heart, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -26,12 +26,12 @@ export const UserNavbar: React.FC<UserNavbarProps> = ({ currentSectionTitle, onN
       >
         <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 via-pink-500 to-amber-400 p-0.5 shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform">
           <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-rose-400" />
+            <Heart className="w-5 h-5 text-rose-400 fill-rose-500/30 group-hover:scale-110 transition-transform" />
           </div>
         </div>
         <div className="flex flex-col">
           <span className="font-extrabold text-base sm:text-lg tracking-tight bg-gradient-to-r from-rose-300 via-pink-200 to-amber-200 bg-clip-text text-transparent">
-            OurVerse
+            Sansh-memonts
           </span>
         </div>
       </button>

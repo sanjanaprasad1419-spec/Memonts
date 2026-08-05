@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Heart } from 'lucide-react';
 
 interface Scene1LoadingProps {
   onComplete: () => void;
@@ -40,12 +40,12 @@ export const Scene1Loading: React.FC<Scene1LoadingProps> = ({ onComplete }) => {
       >
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-500 via-pink-500 to-amber-400 p-0.5 shadow-2xl shadow-rose-500/20">
           <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-rose-400 animate-pulse" />
+            <Heart className="w-8 h-8 text-rose-400 fill-rose-500/40 animate-pulse" />
           </div>
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-rose-300 via-pink-200 to-amber-200 bg-clip-text text-transparent">
-          OurVerse
+          Sansh-memonts
         </h1>
       </motion.div>
 
