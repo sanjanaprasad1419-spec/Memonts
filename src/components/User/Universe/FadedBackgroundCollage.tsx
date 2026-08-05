@@ -14,57 +14,9 @@ interface FadedBackgroundCollageProps {
   rotationIntervalMs?: number;
 }
 
-const SLOT_POSITIONS = [
-  {
-    // Top Left
-    className: 'top-[-2%] left-[-2%] w-[38vw] h-[38vh] -rotate-2',
-    floatAnimation: { y: [0, -10, 0], transition: { duration: 7, repeat: Infinity, ease: 'easeInOut' as const } },
-  },
-  {
-    // Top Center
-    className: 'top-[-4%] left-[30vw] w-[40vw] h-[38vh] rotate-1',
-    floatAnimation: { y: [0, 11, 0], transition: { duration: 8.5, repeat: Infinity, ease: 'easeInOut' as const } },
-  },
-  {
-    // Top Right
-    className: 'top-[-2%] right-[-2%] w-[38vw] h-[38vh] rotate-2',
-    floatAnimation: { y: [0, 12, 0], transition: { duration: 8, repeat: Infinity, ease: 'easeInOut' as const } },
-  },
-  {
-    // Middle Left
-    className: 'top-[28vh] left-[-3%] w-[38vw] h-[40vh] rotate-3',
-    floatAnimation: { y: [0, -8, 0], transition: { duration: 6.5, repeat: Infinity, ease: 'easeInOut' as const } },
-  },
-  {
-    // Middle Center (Fills center of screen)
-    className: 'top-[26vh] left-[28vw] w-[44vw] h-[44vh] -rotate-1',
-    floatAnimation: { y: [0, 14, 0], transition: { duration: 9, repeat: Infinity, ease: 'easeInOut' as const } },
-  },
-  {
-    // Middle Right
-    className: 'top-[28vh] right-[-3%] w-[38vw] h-[40vh] -rotate-3',
-    floatAnimation: { y: [0, 10, 0], transition: { duration: 7.5, repeat: Infinity, ease: 'easeInOut' as const } },
-  },
-  {
-    // Bottom Left
-    className: 'bottom-[-2%] left-[-2%] w-[38vw] h-[38vh] -rotate-1',
-    floatAnimation: { y: [0, -14, 0], transition: { duration: 8.5, repeat: Infinity, ease: 'easeInOut' as const } },
-  },
-  {
-    // Bottom Center
-    className: 'bottom-[-4%] left-[30vw] w-[40vw] h-[38vh] rotate-2',
-    floatAnimation: { y: [0, -11, 0], transition: { duration: 7.8, repeat: Infinity, ease: 'easeInOut' as const } },
-  },
-  {
-    // Bottom Right
-    className: 'bottom-[-2%] right-[-2%] w-[38vw] h-[38vh] rotate-1',
-    floatAnimation: { y: [0, 9, 0], transition: { duration: 7, repeat: Infinity, ease: 'easeInOut' as const } },
-  },
-];
-
 export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
-  opacity = 0.22,
-  rotationIntervalMs = 3800,
+  opacity = 0.25,
+  rotationIntervalMs = 3500,
 }) => {
   const [welcomePhotos, setWelcomePhotos] = useState<WelcomeBackgroundPhoto[]>([]);
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
@@ -98,7 +50,7 @@ export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
     return urls;
   }, [welcomePhotos, galleryPhotos]);
 
-  // Ensure pool has sufficient photos to populate 9 slots
+  // Ensure pool has at least 9 photos to populate all 9 grid cells
   const pool = useMemo(() => {
     if (allPhotoUrls.length === 0) return [];
     let list = [...allPhotoUrls];
@@ -108,36 +60,36 @@ export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
     return list;
   }, [allPhotoUrls]);
 
-  // Map each of the 9 floating slots to an index in `pool`
-  const [slotPhotoIndices, setSlotPhotoIndices] = useState<number[]>([0, 1, 2, 3, 4, 5, 6, 7, 8]);
-  const activeSlotIndexRef = useRef<number>(0);
+  // Map each of the 9 grid cells to an index in `pool`
+  const [cellPhotoIndices, setCellPhotoIndices] = useState<number[]>([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  const activeCellRef = useRef<number>(0);
 
-  // Staggered photo updates: change 1 slot every rotationIntervalMs for dynamic organic transition
+  // Staggered photo updates: update 1 cell every rotationIntervalMs for smooth background evolution
   useEffect(() => {
     if (pool.length === 0) return;
 
     const interval = setInterval(() => {
-      setSlotPhotoIndices((prevIndices) => {
+      setCellPhotoIndices((prevIndices) => {
         const next = [...prevIndices];
-        const slotToUpdate = activeSlotIndexRef.current;
-        activeSlotIndexRef.current = (activeSlotIndexRef.current + 1) % 9;
+        const cellToUpdate = activeCellRef.current;
+        activeCellRef.current = (activeCellRef.current + 1) % 9;
 
         const currentUsed = new Set(next);
         let candidates = pool
           .map((_, idx) => idx)
-          .filter((idx) => !currentUsed.has(idx) && idx !== prevIndices[slotToUpdate]);
+          .filter((idx) => !currentUsed.has(idx) && idx !== prevIndices[cellToUpdate]);
 
         if (candidates.length === 0) {
           candidates = pool
             .map((_, idx) => idx)
-            .filter((idx) => idx !== prevIndices[slotToUpdate]);
+            .filter((idx) => idx !== prevIndices[cellToUpdate]);
         }
 
         if (candidates.length > 0) {
           const randomNext = candidates[Math.floor(Math.random() * candidates.length)];
-          next[slotToUpdate] = randomNext;
+          next[cellToUpdate] = randomNext;
         } else {
-          next[slotToUpdate] = (next[slotToUpdate] + 1) % pool.length;
+          next[cellToUpdate] = (next[cellToUpdate] + 1) % pool.length;
         }
 
         return next;
@@ -151,37 +103,41 @@ export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none"
+      className="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none p-3 sm:p-5"
       style={{ opacity }}
     >
-      {SLOT_POSITIONS.map((slot, slotIdx) => {
-        const photoIndexInPool = slotPhotoIndices[slotIdx] % pool.length;
-        const currentPhotoUrl = pool[photoIndexInPool];
+      {/* 3x3 Non-Overlapping Feathered Photo Collage Grid covering 100% screen & center */}
+      <div className="grid grid-cols-3 grid-rows-3 gap-3 sm:gap-5 w-full h-full">
+        {cellPhotoIndices.map((photoIdxInPool, cellIdx) => {
+          const currentPhotoUrl = pool[photoIdxInPool % pool.length];
 
-        return (
-          <motion.div
-            key={`slot-${slotIdx}`}
-            animate={slot.floatAnimation}
-            className={`absolute ${slot.className} pointer-events-none filter blur-[1px] sm:blur-[2px] [mask-image:radial-gradient(ellipse_75%_75%_at_50%_50%,black_35%,transparent_100%)]`}
-          >
-            <AnimatePresence mode="wait">
-              {currentPhotoUrl && (
-                <motion.img
-                  key={`slot-${slotIdx}-img-${currentPhotoUrl}`}
-                  src={currentPhotoUrl}
-                  alt=""
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.04 }}
-                  transition={{ duration: 2.2, ease: 'easeInOut' }}
-                  className="w-full h-full object-cover rounded-[40px]"
-                />
-              )}
-            </AnimatePresence>
-          </motion.div>
-        );
-      })}
+          return (
+            <div
+              key={`cell-${cellIdx}`}
+              className={`relative w-full h-full overflow-hidden filter blur-[1px] sm:blur-[2px] [mask-image:radial-gradient(ellipse_85%_85%_at_50%_50%,black_20%,transparent_90%)] ${
+                cellIdx % 2 === 0 ? 'scale-105 -rotate-1' : 'scale-100 rotate-1'
+              }`}
+            >
+              <AnimatePresence mode="wait">
+                {currentPhotoUrl && (
+                  <motion.img
+                    key={`cell-${cellIdx}-img-${currentPhotoUrl}`}
+                    src={currentPhotoUrl}
+                    alt=""
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.05 }}
+                    transition={{ duration: 2.2, ease: 'easeInOut' }}
+                    className="w-full h-full object-cover rounded-3xl"
+                  />
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
+
 
