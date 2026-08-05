@@ -15,7 +15,7 @@ interface FadedBackgroundCollageProps {
 }
 
 export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
-  opacity = 0.25,
+  opacity = 0.3,
   rotationIntervalMs = 3500,
 }) => {
   const [welcomePhotos, setWelcomePhotos] = useState<WelcomeBackgroundPhoto[]>([]);
@@ -30,7 +30,7 @@ export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
     };
   }, []);
 
-  // Combine unique image URLs from both background and gallery sources
+  // Exclusively render photos uploaded in Admin Background section (fallback to gallery if 0 bg photos)
   const allPhotoUrls = useMemo(() => {
     const urls: string[] = [];
     const seen = new Set<string>();
@@ -44,8 +44,13 @@ export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
       }
     };
 
+    // Primary: Admin uploaded Background photos
     welcomePhotos.forEach((p) => addPhoto(p.imageUrl));
-    galleryPhotos.forEach((p) => addPhoto(p.imageUrl));
+
+    // Fallback only if admin has not uploaded any background photos yet
+    if (urls.length === 0) {
+      galleryPhotos.forEach((p) => addPhoto(p.imageUrl));
+    }
 
     return urls;
   }, [welcomePhotos, galleryPhotos]);
@@ -103,19 +108,19 @@ export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none p-3 sm:p-5"
+      className="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none p-1 sm:p-2"
       style={{ opacity }}
     >
-      {/* 3x3 Non-Overlapping Feathered Photo Collage Grid covering 100% screen & center */}
-      <div className="grid grid-cols-3 grid-rows-3 gap-3 sm:gap-5 w-full h-full">
+      {/* 3x3 Non-Overlapping Feathered Photo Collage Grid covering 100% screen including top-center, center & bottom-center */}
+      <div className="grid grid-cols-3 grid-rows-3 gap-2 sm:gap-4 w-full h-full">
         {cellPhotoIndices.map((photoIdxInPool, cellIdx) => {
           const currentPhotoUrl = pool[photoIdxInPool % pool.length];
 
           return (
             <div
               key={`cell-${cellIdx}`}
-              className={`relative w-full h-full overflow-hidden filter blur-[1px] sm:blur-[2px] [mask-image:radial-gradient(ellipse_85%_85%_at_50%_50%,black_20%,transparent_90%)] ${
-                cellIdx % 2 === 0 ? 'scale-105 -rotate-1' : 'scale-100 rotate-1'
+              className={`relative w-full h-full overflow-hidden filter blur-[1px] sm:blur-[2px] [mask-image:radial-gradient(ellipse_95%_95%_at_50%_50%,black_35%,transparent_95%)] ${
+                cellIdx % 2 === 0 ? 'scale-105 -rotate-1' : 'scale-105 rotate-1'
               }`}
             >
               <AnimatePresence mode="wait">
