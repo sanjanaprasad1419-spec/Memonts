@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import { subscribeMusic, setActiveBackgroundSong, type SongItem } from '../../services/musicService';
 import { Play, Pause, Volume2, VolumeX, Square, Music as MusicIcon, Sparkles, GripVertical } from 'lucide-react';
 
@@ -173,19 +172,59 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
     setActiveBackgroundSong(null);
   };
 
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const initialPosRef = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    initialPosRef.current = { ...position };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (_) {}
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    setPosition({
+      x: initialPosRef.current.x + dx,
+      y: initialPosRef.current.y + dy,
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isDragging) {
+      setIsDragging(false);
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
+  };
+
   // Hide during intro, or if no songs available
   if (isIntroPlaying || songs.length === 0 || !activeSong || !activeSong.audioUrl) {
     return null;
   }
 
   return (
-    <motion.div
-      drag
-      dragMomentum={false}
-      dragElastic={0.05}
-      whileDrag={{ scale: 1.05, boxShadow: '0 20px 40px rgba(0,0,0,0.9)' }}
-      style={{ touchAction: 'none' }}
-      className="fixed bottom-5 left-5 z-[100] animate-fadeIn select-none cursor-grab active:cursor-grabbing pointer-events-auto group"
+    <div
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      style={{
+        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+        touchAction: 'none',
+      }}
+      className={`fixed bottom-5 left-5 z-[100] select-none cursor-grab ${
+        isDragging ? 'cursor-grabbing scale-105 shadow-2xl' : 'hover:scale-[1.02]'
+      } transition-transform duration-75 pointer-events-auto group`}
       title="Click and drag to move player anywhere"
     >
       <div className="flex items-center gap-2.5 sm:gap-3 backdrop-blur-2xl bg-slate-950/95 border border-rose-500/50 hover:border-rose-400 rounded-2xl p-2 sm:px-4 sm:py-3 shadow-[0_10px_35px_rgba(0,0,0,0.85)] shadow-rose-950/50 transition-colors">
@@ -251,6 +290,6 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
           </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
