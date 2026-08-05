@@ -173,39 +173,58 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
   };
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingState, setIsDraggingState] = useState(false);
+  const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const initialPosRef = useRef({ x: 0, y: 0 });
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return;
-
-    setIsDragging(true);
-    dragStartRef.current = { x: e.clientX, y: e.clientY };
+  const startDrag = (clientX: number, clientY: number) => {
+    isDraggingRef.current = true;
+    setIsDraggingState(true);
+    dragStartRef.current = { x: clientX, y: clientY };
     initialPosRef.current = { ...position };
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (_) {}
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStartRef.current.x;
-    const dy = e.clientY - dragStartRef.current.y;
-    setPosition({
-      x: initialPosRef.current.x + dx,
-      y: initialPosRef.current.y + dy,
-    });
-  };
+  useEffect(() => {
+    const handleMove = (clientX: number, clientY: number) => {
+      if (!isDraggingRef.current) return;
+      const dx = clientX - dragStartRef.current.x;
+      const dy = clientY - dragStartRef.current.y;
+      setPosition({
+        x: initialPosRef.current.x + dx,
+        y: initialPosRef.current.y + dy,
+      });
+    };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (isDragging) {
-      setIsDragging(false);
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch (_) {}
-    }
-  };
+    const handleMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleEnd = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        setIsDraggingState(false);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [position]);
 
   // Hide during intro, or if no songs available
   if (isIntroPlaying || songs.length === 0 || !activeSong || !activeSong.audioUrl) {
@@ -214,17 +233,23 @@ export const GlobalMusicPlayer: React.FC<GlobalMusicPlayerProps> = ({ isIntroPla
 
   return (
     <div
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onMouseDown={(e) => {
+        if ((e.target as HTMLElement).closest('button')) return;
+        startDrag(e.clientX, e.clientY);
+      }}
+      onTouchStart={(e) => {
+        if ((e.target as HTMLElement).closest('button')) return;
+        if (e.touches.length > 0) {
+          startDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }}
       style={{
         transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
         touchAction: 'none',
       }}
-      className={`fixed bottom-5 left-5 z-[100] select-none cursor-grab ${
-        isDragging ? 'cursor-grabbing scale-105 shadow-2xl' : 'hover:scale-[1.02]'
-      } transition-transform duration-75 pointer-events-auto group`}
+      className={`fixed bottom-5 left-5 z-[100] select-none ${
+        isDraggingState ? 'cursor-grabbing scale-105 shadow-2xl' : 'cursor-grab hover:scale-[1.02]'
+      } pointer-events-auto group`}
       title="Click and drag to move player anywhere"
     >
       <div className="flex items-center gap-2.5 sm:gap-3 backdrop-blur-2xl bg-slate-950/95 border border-rose-500/50 hover:border-rose-400 rounded-2xl p-2 sm:px-4 sm:py-3 shadow-[0_10px_35px_rgba(0,0,0,0.85)] shadow-rose-950/50 transition-colors">
