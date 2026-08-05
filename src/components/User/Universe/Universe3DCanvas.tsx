@@ -157,6 +157,9 @@ export const Universe3DCanvas: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen bg-black text-slate-100 overflow-hidden flex flex-col justify-between select-none">
+      {/* Dynamic Organic Faded Background Collage (Active across Observatory & when Cards open) */}
+      <FadedBackgroundCollage opacity={0.25} rotationIntervalMs={3600} />
+
       {/* 3D Glowing Star Cursor */}
       <StarCursor />
 
@@ -195,8 +198,6 @@ export const Universe3DCanvas: React.FC = () => {
             exit={{ opacity: 0, transition: { duration: 0.8 } }}
             className="absolute inset-0 z-10 w-full h-full"
           >
-            {/* Faded Background Photo Collage (5-photo batch rotation behind stars, moon & cards) */}
-            <FadedBackgroundCollage opacity={0.14} rotationIntervalMs={6000} />
             {/* Realistic Interactive Full Moon (Exclusively on 3D Universe Page) */}
             <RealisticMoon />
             <Canvas

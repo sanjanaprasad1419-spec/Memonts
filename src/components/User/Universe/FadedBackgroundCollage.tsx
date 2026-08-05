@@ -1,96 +1,172 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   subscribeWelcomeBackgrounds,
   type WelcomeBackgroundPhoto,
 } from '../../../services/backgroundService';
+import {
+  subscribeGalleryPhotos,
+  type GalleryPhoto,
+} from '../../../services/galleryService';
 
 interface FadedBackgroundCollageProps {
   opacity?: number;
   rotationIntervalMs?: number;
 }
 
+const SLOT_POSITIONS = [
+  {
+    // Top Left
+    className: 'top-[4%] left-[2%] w-[34vw] max-w-[360px] h-[30vw] max-h-[310px] -rotate-3',
+    floatAnimation: { y: [0, -10, 0], transition: { duration: 7, repeat: Infinity, ease: 'easeInOut' as const } },
+  },
+  {
+    // Top Right
+    className: 'top-[5%] right-[3%] w-[35vw] max-w-[370px] h-[32vw] max-h-[320px] rotate-2',
+    floatAnimation: { y: [0, 12, 0], transition: { duration: 8, repeat: Infinity, ease: 'easeInOut' as const } },
+  },
+  {
+    // Middle Left
+    className: 'top-[36%] left-[1%] w-[30vw] max-w-[320px] h-[28vw] max-h-[290px] rotate-4',
+    floatAnimation: { y: [0, -8, 0], transition: { duration: 6.5, repeat: Infinity, ease: 'easeInOut' as const } },
+  },
+  {
+    // Middle Right
+    className: 'top-[38%] right-[2%] w-[31vw] max-w-[330px] h-[29vw] max-h-[300px] -rotate-4',
+    floatAnimation: { y: [0, 10, 0], transition: { duration: 7.5, repeat: Infinity, ease: 'easeInOut' as const } },
+  },
+  {
+    // Bottom Left
+    className: 'bottom-[5%] left-[3%] w-[34vw] max-w-[360px] h-[31vw] max-h-[320px] -rotate-2',
+    floatAnimation: { y: [0, -14, 0], transition: { duration: 8.5, repeat: Infinity, ease: 'easeInOut' as const } },
+  },
+  {
+    // Bottom Right
+    className: 'bottom-[6%] right-[4%] w-[32vw] max-w-[340px] h-[30vw] max-h-[310px] rotate-3',
+    floatAnimation: { y: [0, 9, 0], transition: { duration: 7, repeat: Infinity, ease: 'easeInOut' as const } },
+  },
+];
+
 export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
-  opacity = 0.15,
-  rotationIntervalMs = 6000,
+  opacity = 0.22,
+  rotationIntervalMs = 3800,
 }) => {
-  const [photos, setPhotos] = useState<WelcomeBackgroundPhoto[]>([]);
-  const [batchIndex, setBatchIndex] = useState<number>(0);
+  const [welcomePhotos, setWelcomePhotos] = useState<WelcomeBackgroundPhoto[]>([]);
+  const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
 
   useEffect(() => {
-    const unsub = subscribeWelcomeBackgrounds((items) => {
-      setPhotos(items);
-    });
-    return () => unsub();
+    const unsub1 = subscribeWelcomeBackgrounds((items) => setWelcomePhotos(items || []));
+    const unsub2 = subscribeGalleryPhotos((items) => setGalleryPhotos(items || []));
+    return () => {
+      unsub1();
+      unsub2();
+    };
   }, []);
 
-  const totalBatches = useMemo(() => {
-    if (photos.length === 0) return 0;
-    return Math.ceil(photos.length / 5);
-  }, [photos.length]);
+  // Combine unique image URLs from both background and gallery sources
+  const allPhotoUrls = useMemo(() => {
+    const urls: string[] = [];
+    const seen = new Set<string>();
 
-  // Rotate through batches of 5 photos every rotationIntervalMs
-  useEffect(() => {
-    if (totalBatches <= 1) return;
-    const interval = setInterval(() => {
-      setBatchIndex((prev) => (prev + 1) % totalBatches);
-    }, rotationIntervalMs);
-    return () => clearInterval(interval);
-  }, [totalBatches, rotationIntervalMs]);
+    const addPhoto = (url?: string) => {
+      if (!url || typeof url !== 'string' || !url.trim()) return;
+      if (url.match(/\.(mp4|webm|ogg|mov|m4v|avi|mkv)(\?.*)?$/i)) return;
+      if (!seen.has(url)) {
+        seen.add(url);
+        urls.push(url);
+      }
+    };
 
-  // Extract current 5 photos for display
-  const currentFivePhotos = useMemo(() => {
-    if (photos.length === 0) return [];
-    const start = (batchIndex * 5) % photos.length;
-    const result: WelcomeBackgroundPhoto[] = [];
-    for (let i = 0; i < Math.min(5, photos.length); i++) {
-      result.push(photos[(start + i) % photos.length]);
+    welcomePhotos.forEach((p) => addPhoto(p.imageUrl));
+    galleryPhotos.forEach((p) => addPhoto(p.imageUrl));
+
+    return urls;
+  }, [welcomePhotos, galleryPhotos]);
+
+  // Ensure pool has sufficient photos to populate 6 slots
+  const pool = useMemo(() => {
+    if (allPhotoUrls.length === 0) return [];
+    let list = [...allPhotoUrls];
+    while (list.length < 6) {
+      list = [...list, ...allPhotoUrls];
     }
-    return result;
-  }, [photos, batchIndex]);
+    return list;
+  }, [allPhotoUrls]);
 
-  if (photos.length === 0) return null;
+  // Map each of the 6 floating slots to an index in `pool`
+  const [slotPhotoIndices, setSlotPhotoIndices] = useState<number[]>([0, 1, 2, 3, 4, 5]);
+  const activeSlotIndexRef = useRef<number>(0);
+
+  // Staggered photo updates: change 1 slot every rotationIntervalMs for dynamic organic transition
+  useEffect(() => {
+    if (pool.length === 0) return;
+
+    const interval = setInterval(() => {
+      setSlotPhotoIndices((prevIndices) => {
+        const next = [...prevIndices];
+        const slotToUpdate = activeSlotIndexRef.current;
+        activeSlotIndexRef.current = (activeSlotIndexRef.current + 1) % 6;
+
+        const currentUsed = new Set(next);
+        let candidates = pool
+          .map((_, idx) => idx)
+          .filter((idx) => !currentUsed.has(idx) && idx !== prevIndices[slotToUpdate]);
+
+        if (candidates.length === 0) {
+          candidates = pool
+            .map((_, idx) => idx)
+            .filter((idx) => idx !== prevIndices[slotToUpdate]);
+        }
+
+        if (candidates.length > 0) {
+          const randomNext = candidates[Math.floor(Math.random() * candidates.length)];
+          next[slotToUpdate] = randomNext;
+        } else {
+          next[slotToUpdate] = (next[slotToUpdate] + 1) % pool.length;
+        }
+
+        return next;
+      });
+    }, rotationIntervalMs);
+
+    return () => clearInterval(interval);
+  }, [pool, rotationIntervalMs]);
+
+  if (pool.length === 0) return null;
 
   return (
-    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`bg-batch-${batchIndex}`}
-          initial={{ opacity: 0, scale: 1.04 }}
-          animate={{ opacity: opacity, scale: 1.1 }}
-          exit={{ opacity: 0, scale: 1.04 }}
-          transition={{ duration: 2.2, ease: 'easeInOut' }}
-          className="absolute inset-0 w-full h-full filter blur-[2px] [mask-image:radial-gradient(ellipse_85%_85%_at_50%_50%,black_45%,transparent_100%)] overflow-hidden"
-        >
-          {/* 5-Photo Aesthetic Romantic Collage Grid */}
-          <div className="grid grid-cols-3 grid-rows-2 gap-4 sm:gap-6 w-full h-full p-6">
-            {currentFivePhotos.map((photo, i) => {
-              // Layout positions for 5 photos across a 3x2 grid
-              const gridSpan =
-                i === 0
-                  ? 'col-span-1 row-span-1 border border-slate-700/40 rounded-3xl overflow-hidden scale-105 -rotate-2'
-                  : i === 1
-                  ? 'col-span-1 row-span-2 border border-slate-700/40 rounded-3xl overflow-hidden scale-110 rotate-1'
-                  : i === 2
-                  ? 'col-span-1 row-span-1 border border-slate-700/40 rounded-3xl overflow-hidden scale-100 rotate-3'
-                  : i === 3
-                  ? 'col-span-1 row-span-1 border border-slate-700/40 rounded-3xl overflow-hidden scale-105 rotate-[-3deg]'
-                  : 'col-span-1 row-span-1 border border-slate-700/40 rounded-3xl overflow-hidden scale-100 rotate-2';
+    <div
+      className="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none"
+      style={{ opacity }}
+    >
+      {SLOT_POSITIONS.map((slot, slotIdx) => {
+        const photoIndexInPool = slotPhotoIndices[slotIdx] % pool.length;
+        const currentPhotoUrl = pool[photoIndexInPool];
 
-              return (
-                <div key={`${photo.id}-${i}`} className={`relative w-full h-full ${gridSpan}`}>
-                  <img
-                    src={photo.imageUrl}
-                    alt=""
-                    className="w-full h-full object-cover rounded-3xl"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40"></div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-      </AnimatePresence>
+        return (
+          <motion.div
+            key={`slot-${slotIdx}`}
+            animate={slot.floatAnimation}
+            className={`absolute ${slot.className} pointer-events-none filter blur-[1px] sm:blur-[2px] [mask-image:radial-gradient(ellipse_75%_75%_at_50%_50%,black_35%,transparent_100%)]`}
+          >
+            <AnimatePresence mode="wait">
+              {currentPhotoUrl && (
+                <motion.img
+                  key={`slot-${slotIdx}-img-${currentPhotoUrl}`}
+                  src={currentPhotoUrl}
+                  alt=""
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.04 }}
+                  transition={{ duration: 2.2, ease: 'easeInOut' }}
+                  className="w-full h-full object-cover rounded-[40px]"
+                />
+              )}
+            </AnimatePresence>
+          </motion.div>
+        );
+      })}
     </div>
   );
 };
+
