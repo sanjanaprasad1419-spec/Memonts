@@ -4,10 +4,6 @@ import {
   subscribeWelcomeBackgrounds,
   type WelcomeBackgroundPhoto,
 } from '../../../services/backgroundService';
-import {
-  subscribeGalleryPhotos,
-  type GalleryPhoto,
-} from '../../../services/galleryService';
 
 interface FadedBackgroundCollageProps {
   opacity?: number;
@@ -19,41 +15,29 @@ export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
   rotationIntervalMs = 3500,
 }) => {
   const [welcomePhotos, setWelcomePhotos] = useState<WelcomeBackgroundPhoto[]>([]);
-  const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
 
   useEffect(() => {
-    const unsub1 = subscribeWelcomeBackgrounds((items) => setWelcomePhotos(items || []));
-    const unsub2 = subscribeGalleryPhotos((items) => setGalleryPhotos(items || []));
-    return () => {
-      unsub1();
-      unsub2();
-    };
+    const unsub = subscribeWelcomeBackgrounds((items) => setWelcomePhotos(items || []));
+    return () => unsub();
   }, []);
 
-  // Exclusively render photos uploaded in Admin Background section (fallback to gallery if 0 bg photos)
+  // Exclusively render photos uploaded in Admin Background section (NO Constellation / Gallery photos!)
   const allPhotoUrls = useMemo(() => {
     const urls: string[] = [];
     const seen = new Set<string>();
 
-    const addPhoto = (url?: string) => {
+    welcomePhotos.forEach((p) => {
+      const url = p?.imageUrl;
       if (!url || typeof url !== 'string' || !url.trim()) return;
       if (url.match(/\.(mp4|webm|ogg|mov|m4v|avi|mkv)(\?.*)?$/i)) return;
       if (!seen.has(url)) {
         seen.add(url);
         urls.push(url);
       }
-    };
-
-    // Primary: Admin uploaded Background photos
-    welcomePhotos.forEach((p) => addPhoto(p.imageUrl));
-
-    // Fallback only if admin has not uploaded any background photos yet
-    if (urls.length === 0) {
-      galleryPhotos.forEach((p) => addPhoto(p.imageUrl));
-    }
+    });
 
     return urls;
-  }, [welcomePhotos, galleryPhotos]);
+  }, [welcomePhotos]);
 
   // Ensure pool has at least 9 photos to populate all 9 grid cells
   const pool = useMemo(() => {
