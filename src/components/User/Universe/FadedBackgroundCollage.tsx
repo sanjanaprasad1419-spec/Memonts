@@ -17,32 +17,47 @@ interface FadedBackgroundCollageProps {
 const SLOT_POSITIONS = [
   {
     // Top Left
-    className: 'top-[4%] left-[2%] w-[34vw] max-w-[360px] h-[30vw] max-h-[310px] -rotate-3',
+    className: 'top-[-2%] left-[-2%] w-[38vw] h-[38vh] -rotate-2',
     floatAnimation: { y: [0, -10, 0], transition: { duration: 7, repeat: Infinity, ease: 'easeInOut' as const } },
   },
   {
+    // Top Center
+    className: 'top-[-4%] left-[30vw] w-[40vw] h-[38vh] rotate-1',
+    floatAnimation: { y: [0, 11, 0], transition: { duration: 8.5, repeat: Infinity, ease: 'easeInOut' as const } },
+  },
+  {
     // Top Right
-    className: 'top-[5%] right-[3%] w-[35vw] max-w-[370px] h-[32vw] max-h-[320px] rotate-2',
+    className: 'top-[-2%] right-[-2%] w-[38vw] h-[38vh] rotate-2',
     floatAnimation: { y: [0, 12, 0], transition: { duration: 8, repeat: Infinity, ease: 'easeInOut' as const } },
   },
   {
     // Middle Left
-    className: 'top-[36%] left-[1%] w-[30vw] max-w-[320px] h-[28vw] max-h-[290px] rotate-4',
+    className: 'top-[28vh] left-[-3%] w-[38vw] h-[40vh] rotate-3',
     floatAnimation: { y: [0, -8, 0], transition: { duration: 6.5, repeat: Infinity, ease: 'easeInOut' as const } },
   },
   {
+    // Middle Center (Fills center of screen)
+    className: 'top-[26vh] left-[28vw] w-[44vw] h-[44vh] -rotate-1',
+    floatAnimation: { y: [0, 14, 0], transition: { duration: 9, repeat: Infinity, ease: 'easeInOut' as const } },
+  },
+  {
     // Middle Right
-    className: 'top-[38%] right-[2%] w-[31vw] max-w-[330px] h-[29vw] max-h-[300px] -rotate-4',
+    className: 'top-[28vh] right-[-3%] w-[38vw] h-[40vh] -rotate-3',
     floatAnimation: { y: [0, 10, 0], transition: { duration: 7.5, repeat: Infinity, ease: 'easeInOut' as const } },
   },
   {
     // Bottom Left
-    className: 'bottom-[5%] left-[3%] w-[34vw] max-w-[360px] h-[31vw] max-h-[320px] -rotate-2',
+    className: 'bottom-[-2%] left-[-2%] w-[38vw] h-[38vh] -rotate-1',
     floatAnimation: { y: [0, -14, 0], transition: { duration: 8.5, repeat: Infinity, ease: 'easeInOut' as const } },
   },
   {
+    // Bottom Center
+    className: 'bottom-[-4%] left-[30vw] w-[40vw] h-[38vh] rotate-2',
+    floatAnimation: { y: [0, -11, 0], transition: { duration: 7.8, repeat: Infinity, ease: 'easeInOut' as const } },
+  },
+  {
     // Bottom Right
-    className: 'bottom-[6%] right-[4%] w-[32vw] max-w-[340px] h-[30vw] max-h-[310px] rotate-3',
+    className: 'bottom-[-2%] right-[-2%] w-[38vw] h-[38vh] rotate-1',
     floatAnimation: { y: [0, 9, 0], transition: { duration: 7, repeat: Infinity, ease: 'easeInOut' as const } },
   },
 ];
@@ -83,18 +98,18 @@ export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
     return urls;
   }, [welcomePhotos, galleryPhotos]);
 
-  // Ensure pool has sufficient photos to populate 6 slots
+  // Ensure pool has sufficient photos to populate 9 slots
   const pool = useMemo(() => {
     if (allPhotoUrls.length === 0) return [];
     let list = [...allPhotoUrls];
-    while (list.length < 6) {
+    while (list.length < 9) {
       list = [...list, ...allPhotoUrls];
     }
     return list;
   }, [allPhotoUrls]);
 
-  // Map each of the 6 floating slots to an index in `pool`
-  const [slotPhotoIndices, setSlotPhotoIndices] = useState<number[]>([0, 1, 2, 3, 4, 5]);
+  // Map each of the 9 floating slots to an index in `pool`
+  const [slotPhotoIndices, setSlotPhotoIndices] = useState<number[]>([0, 1, 2, 3, 4, 5, 6, 7, 8]);
   const activeSlotIndexRef = useRef<number>(0);
 
   // Staggered photo updates: change 1 slot every rotationIntervalMs for dynamic organic transition
@@ -105,7 +120,7 @@ export const FadedBackgroundCollage: React.FC<FadedBackgroundCollageProps> = ({
       setSlotPhotoIndices((prevIndices) => {
         const next = [...prevIndices];
         const slotToUpdate = activeSlotIndexRef.current;
-        activeSlotIndexRef.current = (activeSlotIndexRef.current + 1) % 6;
+        activeSlotIndexRef.current = (activeSlotIndexRef.current + 1) % 9;
 
         const currentUsed = new Set(next);
         let candidates = pool

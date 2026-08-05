@@ -204,6 +204,10 @@ export const Universe3DCanvas: React.FC = () => {
               dpr={[1, 2]}
               camera={{ position: [0, 0, 9.2], fov: 50 }}
               gl={{ antialias: true, alpha: true }}
+              onCreated={({ gl, scene }) => {
+                gl.setClearColor(0x000000, 0);
+                scene.background = null;
+              }}
               className="w-full h-full cursor-grab active:cursor-grabbing"
             >
               <UniverseLighting />
