@@ -44,7 +44,7 @@ const defaultManifest: SystemManifest = {
   events: [
     {
       id: 'default-bday-1',
-      name: "Shubham's 30th Birthday",
+      name: "Shubham's Birthday",
       description: 'A special milestone birthday celebration timeline filled with love, memories, and surprises.',
       date: 'June 19, 2026',
       status: 'Published',

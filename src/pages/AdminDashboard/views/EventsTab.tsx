@@ -468,7 +468,7 @@ export const EventsTab: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Shubham's 30th Birthday Party"
+                  placeholder="e.g. Shubham's Birthday Party"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-rose-500/50 transition-colors"

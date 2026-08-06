@@ -41,7 +41,7 @@ export const LetterDetailView: React.FC<LetterDetailViewProps> = ({ onBack }) =>
             <p>Dearest Shubham,</p>
 
             <p>
-              Happy 30th Birthday! Reaching this incredible milestone is a celebration of everything you are—kind, hardworking, passionate, and deeply cherished.
+              Happy Birthday! Reaching this incredible milestone is a celebration of everything you are—kind, hardworking, passionate, and deeply cherished.
             </p>
 
             <p>

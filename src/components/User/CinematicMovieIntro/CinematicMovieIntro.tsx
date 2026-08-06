@@ -21,7 +21,7 @@ export const CinematicMovieIntro: React.FC<CinematicMovieIntroProps> = ({ onEnte
   // 1: Story Typing (Pure Black)
   // 2: Universe & Welcome Shubham (Photo Collage background)
   // 3: Today... -> isn't just another day. -> Because...
-  // 4: Happy 30th Birthday Shubham ❤️ (Golden Reveal)
+  // 4: Happy Birthday Shubham ❤️ (Golden Reveal)
   // 5: Invitation Card (Enter My World ❤️)
   const [currentScene, setCurrentScene] = useState<1 | 2 | 3 | 4 | 5>(1);
 

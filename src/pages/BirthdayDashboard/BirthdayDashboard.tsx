@@ -33,7 +33,7 @@ export const BirthdayDashboard: React.FC = () => {
       case 'hub':
         return 'Memory Hub';
       case 'celebration':
-        return '30th Birthday';
+        return 'Birthday Celebration';
       case 'gallery':
         return 'Photo Gallery';
       case 'letters':

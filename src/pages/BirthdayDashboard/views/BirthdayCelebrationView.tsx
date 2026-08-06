@@ -16,7 +16,7 @@ export const BirthdayCelebrationView: React.FC<BirthdayCelebrationViewProps> = (
       <div className="space-y-8 animate-fadeIn text-center">
         <SectionHeader
           badge="Main Surprise"
-          title="30th Birthday Celebration"
+          title="Birthday Celebration"
           subtitle="The celebration begins in the next phase."
         />
 

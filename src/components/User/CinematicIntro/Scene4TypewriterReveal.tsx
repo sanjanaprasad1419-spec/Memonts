@@ -68,7 +68,7 @@ export const Scene4TypewriterReveal: React.FC<Scene4TypewriterRevealProps> = ({ 
             transition={{ duration: 1 }}
             className="text-3xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-amber-200 via-rose-300 to-amber-400 bg-clip-text text-transparent pt-4"
           >
-            Happy 30th Birthday ❤️
+            Happy Birthday ❤️
           </motion.div>
         )}
       </div>
